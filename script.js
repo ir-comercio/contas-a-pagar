@@ -247,34 +247,35 @@ function updateDashboard() {
     
     const pagos = contasDoMes.filter(c => c.status === 'PAGO').length;
     
-    const atraso = contasDoMes.filter(c => {
+    // VENCIDO = vence hoje OU já passou (<=)
+    const vencido = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
-        return dataVenc < hoje;
+        return dataVenc <= hoje;
     }).length;
     
     const eminente = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
-        return dataVenc >= hoje && dataVenc <= quinzeDias;
+        return dataVenc > hoje && dataVenc <= quinzeDias;
     }).length;
     
     const valorTotal = contasDoMes.reduce((sum, c) => sum + parseFloat(c.valor || 0), 0);
     
     document.getElementById('statPagos').textContent = pagos;
-    document.getElementById('statAtraso').textContent = atraso;
+    document.getElementById('statAtraso').textContent = vencido;
     document.getElementById('statEminente').textContent = eminente;
     document.getElementById('statValorTotal').textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     
     const cardAtraso = document.getElementById('cardAtraso');
     const badgeAtraso = document.getElementById('pulseBadgeAtraso');
     
-    if (atraso > 0) {
+    if (vencido > 0) {
         cardAtraso.classList.add('has-alert');
         badgeAtraso.style.display = 'flex';
-        badgeAtraso.textContent = atraso;
+        badgeAtraso.textContent = vencido;
     } else {
         cardAtraso.classList.remove('has-alert');
         badgeAtraso.style.display = 'none';
@@ -961,7 +962,7 @@ window.generatePDFNaoPagas = async function() {
         yPos += 7;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
+        doc.text(`Mês: ${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
         
         yPos += 5;
         doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth / 2, yPos, { align: 'center' });
@@ -1101,7 +1102,7 @@ function updateStatusFilter() {
     });
     
     const statusSet = new Set();
-    let temAtraso = false;
+    let temVencido = false;
     let temEminente = false;
     
     contasDoMes.forEach(c => {
@@ -1111,8 +1112,9 @@ function updateStatusFilter() {
             const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
             dataVenc.setHours(0, 0, 0, 0);
             
-            if (dataVenc < hoje) {
-                temAtraso = true;
+            // VENCIDO = vence hoje OU já passou (<=)
+            if (dataVenc <= hoje) {
+                temVencido = true;
             } else {
                 const quinzeDias = new Date(hoje);
                 quinzeDias.setDate(quinzeDias.getDate() + 15);
@@ -1135,10 +1137,10 @@ function updateStatusFilter() {
             select.appendChild(opt);
         }
         
-        if (temAtraso) {
+        if (temVencido) {
             const opt = document.createElement('option');
-            opt.value = 'ATRASO';
-            opt.textContent = 'Em Atraso';
+            opt.value = 'VENCIDO';
+            opt.textContent = 'Vencido';
             select.appendChild(opt);
         }
         
@@ -1180,17 +1182,17 @@ function filterContas() {
             if (filterStatus === 'PAGO') {
                 return c.status === 'PAGO';
             }
-            if (filterStatus === 'ATRASO') {
+            if (filterStatus === 'VENCIDO') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
-                return dataVenc < hoje;
+                return dataVenc <= hoje;
             }
             if (filterStatus === 'EMINENTE') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
-                return dataVenc >= hoje && dataVenc <= quinzeDias;
+                return dataVenc > hoje && dataVenc <= quinzeDias;
             }
             return true;
         });
@@ -1306,7 +1308,8 @@ function getStatusDinamico(conta) {
     const dataVenc = new Date(conta.data_vencimento + 'T00:00:00');
     dataVenc.setHours(0, 0, 0, 0);
     
-    if (dataVenc < hoje) return 'ATRASO';
+    // VENCIDO = vence hoje OU já passou (<=)
+    if (dataVenc <= hoje) return 'VENCIDO';
     
     const quinzeDias = new Date(hoje);
     quinzeDias.setDate(quinzeDias.getDate() + 15);
@@ -1319,7 +1322,7 @@ function getStatusDinamico(conta) {
 function getStatusBadge(status) {
     const statusMap = {
         'PAGO': { class: 'entregue', text: 'Pago' },
-        'ATRASO': { class: 'devolvido', text: 'Atrasado' },
+        'VENCIDO': { class: 'devolvido', text: 'Vencido' },
         'EMINENTE': { class: 'rota', text: 'Eminente' },
         'PENDENTE': { class: 'transito', text: 'Pendente' }
     };
@@ -1343,4 +1346,3 @@ function showMessage(message, type) {
         setTimeout(() => messageDiv.remove(), 300);
     }, 3000);
 }
-
