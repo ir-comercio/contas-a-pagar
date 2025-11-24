@@ -836,13 +836,13 @@ window.generatePDFPagas = async function() {
         contasPagas.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
 
         doc.setFontSize(9);
-        const colWidths = [65, 25, 30, 35, 25];
+        const colWidths = [55, 23, 25, 30, 23, 24];
         const startX = margin;
 
         // Cabeçalho da tabela - CINZA
         doc.setFont('helvetica', 'bold');
         doc.setFillColor(74, 74, 74); // Cinza escuro
-        doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], 8, 'F');
+        doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5], 8, 'F');
         doc.setTextColor(255, 255, 255);
         
         let xPos = startX + 2;
@@ -850,10 +850,12 @@ window.generatePDFPagas = async function() {
         xPos += colWidths[0];
         doc.text('VENCIMENTO', xPos, yPos + 5);
         xPos += colWidths[1];
-        doc.text('FORMA PGTO', xPos, yPos + 5);
+        doc.text('PAGAMENTO', xPos, yPos + 5);
         xPos += colWidths[2];
-        doc.text('BANCO', xPos, yPos + 5);
+        doc.text('FORMA PGTO', xPos, yPos + 5);
         xPos += colWidths[3];
+        doc.text('BANCO', xPos, yPos + 5);
+        xPos += colWidths[4];
         doc.text('VALOR (R$)', xPos, yPos + 5);
         
         yPos += 8;
@@ -870,17 +872,19 @@ window.generatePDFPagas = async function() {
 
             const bgColor = index % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
             doc.setFillColor(...bgColor);
-            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], 8, 'F');
+            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5], 8, 'F');
 
             xPos = startX + 2;
-            doc.text(conta.descricao.substring(0, 30), xPos, yPos + 5);
+            doc.text(conta.descricao.substring(0, 25), xPos, yPos + 5);
             xPos += colWidths[0];
             doc.text(formatDate(conta.data_vencimento), xPos, yPos + 5);
             xPos += colWidths[1];
-            doc.text(conta.forma_pagamento.substring(0, 12), xPos, yPos + 5);
+            doc.text(conta.data_pagamento ? formatDate(conta.data_pagamento) : '-', xPos, yPos + 5);
             xPos += colWidths[2];
-            doc.text(conta.banco.substring(0, 15), xPos, yPos + 5);
+            doc.text(conta.forma_pagamento.substring(0, 10), xPos, yPos + 5);
             xPos += colWidths[3];
+            doc.text(conta.banco.substring(0, 12), xPos, yPos + 5);
+            xPos += colWidths[4];
             doc.text(`R$ ${parseFloat(conta.valor).toFixed(2)}`, xPos, yPos + 5);
 
             totalPago += parseFloat(conta.valor);
