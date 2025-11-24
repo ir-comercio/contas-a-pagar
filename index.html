@@ -90,15 +90,15 @@
                 </div>
             </div>
 
+            <!-- BOTÕES PDF -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button onclick="generatePDFPagas()" class="success" style="background: #22C55E; margin-right: 0.5rem;">PDF</button>
+                <button onclick="generatePDFNaoPagas()" class="danger" style="background: #EF4444; margin-right: 0;">PDF</button>
+            </div>
+
             <!-- LISTA DE CONTAS -->
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h2 style="margin: 0;">Lista de Contas</h2>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="generatePDFPagas()" class="success" style="background: #22C55E; margin: 0;">PDF</button>
-                        <button onclick="generatePDFNaoPagas()" class="danger" style="background: #EF4444; margin: 0;">PDF</button>
-                    </div>
-                </div>
+                <h2>Lista de Contas</h2>
                 <div id="contasContainer"></div>
             </div>
         </div>
