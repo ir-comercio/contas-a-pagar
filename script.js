@@ -96,18 +96,18 @@ function verificarAutenticacao() {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('sessionToken');
 
-    // SE NÃO TEM TOKEN NA URL = BLOQUEADO
-    if (!tokenFromUrl) {
+    if (tokenFromUrl) {
+        sessionToken = tokenFromUrl;
+        sessionStorage.setItem('contasPagarSession', tokenFromUrl);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+        sessionToken = sessionStorage.getItem('contasPagarSession');
+    }
+
+    if (!sessionToken) {
         mostrarTelaAcessoNegado();
         return;
     }
-
-    // Se chegou aqui, tem token na URL
-    sessionToken = tokenFromUrl;
-    sessionStorage.setItem('contasPagarSession', tokenFromUrl);
-    
-    // Remove token da URL por segurança
-    window.history.replaceState({}, document.title, window.location.pathname);
 
     inicializarApp();
 }
@@ -116,8 +116,8 @@ function mostrarTelaAcessoNegado(mensagem = 'NÃO AUTORIZADO') {
     document.body.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--bg-primary); color: var(--text-primary); text-align: center; padding: 2rem;">
             <h1 style="font-size: 2.2rem; margin-bottom: 1rem;">${mensagem}</h1>
-            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Você precisa acessar através do Portal IR Comércio.</p>
-            <a href="${PORTAL_URL}" style="display: inline-block; background: #CC7000; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ir para o Portal</a>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Somente usuários autenticados podem acessar esta área.</p>
+            <a href="${PORTAL_URL}" style="display: inline-block; background: var(--btn-register); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ir para o Portal</a>
         </div>
     `;
 }
