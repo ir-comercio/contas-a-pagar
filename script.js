@@ -3,6 +3,7 @@
 // ============================================
 const PORTAL_URL = 'https://ir-comercio-portal-zcan.onrender.com';
 const API_URL = 'https://contas-pagar.onrender.com/api';
+const STORAGE_KEY = 'contasPagar_data';
 
 let contas = [];
 let isOnline = false;
@@ -16,7 +17,7 @@ const meses = [
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-console.log('Contas a Pagar iniciada');
+console.log('Contas a Pagar iniciada - Modo Offline Habilitado');
 
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
@@ -25,6 +26,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1500);
     verificarAutenticacao();
 });
+
+// ============================================
+// ARMAZENAMENTO LOCAL
+// ============================================
+function saveToLocalStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(contas));
+        console.log('Dados salvos localmente');
+    } catch (error) {
+        console.error('Erro ao salvar no localStorage:', error);
+    }
+}
+
+function loadFromLocalStorage() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+            contas = JSON.parse(data);
+            console.log(`${contas.length} contas carregadas do armazenamento local`);
+            updateAllFilters();
+            updateDashboard();
+            filterContas();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar do localStorage:', error);
+        contas = [];
+    }
+}
+
+function generateLocalId() {
+    return 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
 
 // ============================================
 // NAVEGAÇÃO POR MESES
@@ -90,7 +123,11 @@ function mostrarTelaAcessoNegado(mensagem = 'NÃO AUTORIZADO') {
 }
 
 function inicializarApp() {
+    // Carrega dados do localStorage primeiro
+    loadFromLocalStorage();
     updateMonthDisplay();
+    
+    // Tenta sincronizar com o servidor
     checkServerStatus();
     setInterval(checkServerStatus, 15000);
     startPolling();
@@ -120,8 +157,8 @@ async function checkServerStatus() {
         isOnline = response.ok;
         
         if (wasOffline && isOnline) {
-            console.log('Servidor ONLINE');
-            await loadContas();
+            console.log('Servidor ONLINE - Sincronizando...');
+            await syncWithServer();
         }
         
         updateConnectionStatus();
@@ -129,6 +166,7 @@ async function checkServerStatus() {
     } catch (error) {
         isOnline = false;
         updateConnectionStatus();
+        console.log('Modo Offline - Dados salvos localmente');
         return false;
     }
 }
@@ -141,9 +179,9 @@ function updateConnectionStatus() {
 }
 
 // ============================================
-// CARREGAMENTO DE DADOS
+// SINCRONIZAÇÃO
 // ============================================
-async function loadContas() {
+async function syncWithServer() {
     if (!isOnline) return;
 
     try {
@@ -164,20 +202,30 @@ async function loadContas() {
 
         if (!response.ok) return;
 
-        const data = await response.json();
-        contas = data;
+        const serverData = await response.json();
+        
+        // Mescla dados: prioriza dados do servidor, mantém dados locais não sincronizados
+        const localOnlyData = contas.filter(c => String(c.id).startsWith('local_'));
+        const mergedData = [...serverData, ...localOnlyData];
+        
+        contas = mergedData;
+        saveToLocalStorage();
         
         const newHash = JSON.stringify(contas.map(c => c.id));
         if (newHash !== lastDataHash) {
             lastDataHash = newHash;
-            console.log(`${contas.length} contas carregadas`);
+            console.log(`Sincronização completa: ${contas.length} contas`);
             updateAllFilters();
             updateDashboard();
             filterContas();
         }
     } catch (error) {
-        console.error('Erro ao carregar:', error);
+        console.error('Erro ao sincronizar:', error);
     }
+}
+
+async function loadContas() {
+    await syncWithServer();
 }
 
 function startPolling() {
@@ -473,59 +521,76 @@ async function handleSubmit(event) {
         }
     }
 
-    if (!isOnline) {
-        showMessage('Sistema offline. Dados não foram salvos.', 'error');
-        closeFormModal();
-        return;
+    // MODO OFFLINE: Salva localmente primeiro
+    if (editId) {
+        // Editando conta existente
+        const index = contas.findIndex(c => String(c.id) === String(editId));
+        if (index !== -1) {
+            contas[index] = { ...contas[index], ...formData };
+            saveToLocalStorage();
+            showMessage('Conta atualizada localmente!', 'success');
+        }
+    } else {
+        // Nova conta
+        const novaConta = {
+            ...formData,
+            id: generateLocalId(),
+            timestamp: new Date().toISOString()
+        };
+        contas.push(novaConta);
+        saveToLocalStorage();
+        showMessage('Conta criada localmente!', 'success');
     }
 
-    try {
-        const url = editId ? `${API_URL}/contas/${editId}` : `${API_URL}/contas`;
-        const method = editId ? 'PUT' : 'POST';
+    updateAllFilters();
+    updateDashboard();
+    filterContas();
+    closeFormModal();
 
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Session-Token': sessionToken,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(formData),
-            mode: 'cors'
-        });
+    // Tenta sincronizar com o servidor se online
+    if (isOnline) {
+        try {
+            const url = editId ? `${API_URL}/contas/${editId}` : `${API_URL}/contas`;
+            const method = editId ? 'PUT' : 'POST';
 
-        if (response.status === 401) {
-            sessionStorage.removeItem('contasPagarSession');
-            mostrarTelaAcessoNegado('Sua sessão expirou');
-            return;
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Session-Token': sessionToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(formData),
+                mode: 'cors'
+            });
+
+            if (response.status === 401) {
+                sessionStorage.removeItem('contasPagarSession');
+                mostrarTelaAcessoNegado('Sua sessão expirou');
+                return;
+            }
+
+            if (response.ok) {
+                const savedData = await response.json();
+                
+                if (editId) {
+                    const index = contas.findIndex(c => String(c.id) === String(editId));
+                    if (index !== -1) contas[index] = savedData;
+                } else {
+                    // Remove a conta local e adiciona a conta do servidor
+                    contas = contas.filter(c => !String(c.id).startsWith('local_'));
+                    contas.push(savedData);
+                }
+                
+                saveToLocalStorage();
+                console.log('Sincronizado com servidor');
+                updateAllFilters();
+                updateDashboard();
+                filterContas();
+            }
+        } catch (error) {
+            console.log('Erro ao sincronizar, mas dados salvos localmente:', error);
         }
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.details || 'Erro ao salvar');
-        }
-
-        const savedData = await response.json();
-
-        if (editId) {
-            const index = contas.findIndex(c => String(c.id) === String(editId));
-            if (index !== -1) contas[index] = savedData;
-            showMessage('Conta atualizada!', 'success');
-        } else {
-            contas.push(savedData);
-            showMessage('Conta criada!', 'success');
-        }
-
-        lastDataHash = JSON.stringify(contas.map(c => c.id));
-        updateAllFilters();
-        updateDashboard();
-        filterContas();
-        closeFormModal();
-
-    } catch (error) {
-        console.error('Erro:', error);
-        showMessage(`Erro: ${error.message}`, 'error');
-        closeFormModal();
     }
 }
 
@@ -541,16 +606,17 @@ window.togglePago = async function(id) {
     if (conta.status === 'PAGO') {
         conta.status = 'PENDENTE';
         conta.data_pagamento = null;
-        updateDashboard();
-        filterContas();
     } else {
         const hoje = new Date().toISOString().split('T')[0];
         conta.status = 'PAGO';
         conta.data_pagamento = hoje;
-        updateDashboard();
-        filterContas();
     }
 
+    saveToLocalStorage();
+    updateDashboard();
+    filterContas();
+
+    // Tenta sincronizar se online
     if (isOnline) {
         try {
             const response = await fetch(`${API_URL}/contas/${idStr}`, {
@@ -567,19 +633,16 @@ window.togglePago = async function(id) {
                 mode: 'cors'
             });
 
-            if (!response.ok) throw new Error('Erro ao atualizar');
-
-            const savedData = await response.json();
-            const index = contas.findIndex(c => String(c.id) === idStr);
-            if (index !== -1) contas[index] = savedData;
-
+            if (response.ok) {
+                const savedData = await response.json();
+                const index = contas.findIndex(c => String(c.id) === idStr);
+                if (index !== -1) {
+                    contas[index] = savedData;
+                    saveToLocalStorage();
+                }
+            }
         } catch (error) {
-            console.error('Erro ao atualizar status:', error);
-            conta.status = conta.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
-            conta.data_pagamento = conta.status === 'PAGO' ? new Date().toISOString().split('T')[0] : null;
-            updateDashboard();
-            filterContas();
-            showMessage('Erro ao atualizar status', 'error');
+            console.log('Erro ao sincronizar status, mas salvo localmente:', error);
         }
     }
 };
@@ -618,12 +681,15 @@ window.deleteConta = async function(id) {
     const idStr = String(id);
     const deletedConta = contas.find(c => String(c.id) === idStr);
     contas = contas.filter(c => String(c.id) !== idStr);
+    
+    saveToLocalStorage();
     updateAllFilters();
     updateDashboard();
     filterContas();
-    showMessage('Conta excluída!', 'success');
+    showMessage('Conta excluída localmente!', 'success');
 
-    if (isOnline) {
+    // Tenta deletar no servidor se online
+    if (isOnline && !idStr.startsWith('local_')) {
         try {
             const response = await fetch(`${API_URL}/contas/${idStr}`, {
                 method: 'DELETE',
@@ -634,15 +700,11 @@ window.deleteConta = async function(id) {
                 mode: 'cors'
             });
 
-            if (!response.ok) throw new Error('Erro ao deletar');
-        } catch (error) {
-            if (deletedConta) {
-                contas.push(deletedConta);
-                updateAllFilters();
-                updateDashboard();
-                filterContas();
-                showMessage('Erro ao excluir', 'error');
+            if (response.ok) {
+                console.log('Conta excluída no servidor');
             }
+        } catch (error) {
+            console.log('Erro ao excluir no servidor, mas removida localmente:', error);
         }
     }
 };
