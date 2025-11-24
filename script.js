@@ -255,7 +255,7 @@ function updateDashboard() {
         return dataVenc <= hoje;
     }).length;
     
-    const eminente = contasDoMes.filter(c => {
+    const iminente = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
@@ -266,7 +266,7 @@ function updateDashboard() {
     
     document.getElementById('statPagos').textContent = pagos;
     document.getElementById('statAtraso').textContent = vencido;
-    document.getElementById('statEminente').textContent = eminente;
+    document.getElementById('statIminente').textContent = iminente;
     document.getElementById('statValorTotal').textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     
     const cardAtraso = document.getElementById('cardAtraso');
@@ -281,16 +281,16 @@ function updateDashboard() {
         badgeAtraso.style.display = 'none';
     }
     
-    const cardEminente = document.getElementById('cardEminente');
-    const badgeEminente = document.getElementById('pulseBadgeEminente');
+    const cardIminente = document.getElementById('cardIminente');
+    const badgeIminente = document.getElementById('pulseBadgeIminente');
     
-    if (eminente > 0) {
-        cardEminente.classList.add('has-warning');
-        badgeEminente.style.display = 'flex';
-        badgeEminente.textContent = eminente;
+    if (iminente > 0) {
+        cardIminente.classList.add('has-warning');
+        badgeIminente.style.display = 'flex';
+        badgeIminente.textContent = iminente;
     } else {
-        cardEminente.classList.remove('has-warning');
-        badgeEminente.style.display = 'none';
+        cardIminente.classList.remove('has-warning');
+        badgeIminente.style.display = 'none';
     }
 }
 
@@ -423,7 +423,10 @@ function showFormModal(editingId = null) {
                                     <select id="banco" required>
                                         <option value="">Selecione...</option>
                                         <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>Banco do Brasil</option>
+                                        <option value="CAIXA" ${conta?.banco === 'CAIXA' ? 'selected' : ''}>Caixa Econômica</option>
                                         <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>Bradesco</option>
+                                        <option value="ITAU" ${conta?.banco === 'ITAU' ? 'selected' : ''}>Itaú</option>
+                                        <option value="SANTANDER" ${conta?.banco === 'SANTANDER' ? 'selected' : ''}>Santander</option>
                                         <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>Sicoob</option>
                                     </select>
                                 </div>
@@ -819,7 +822,7 @@ window.generatePDFPagas = async function() {
         yPos += 7;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
+        doc.text(`Mês: ${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
         
         yPos += 5;
         doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth / 2, yPos, { align: 'center' });
@@ -995,7 +998,7 @@ window.generatePDFNaoPagas = async function() {
         yPos += 7;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
+        doc.text(`Mês: ${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
         
         yPos += 5;
         doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth / 2, yPos, { align: 'center' });
@@ -1165,7 +1168,7 @@ function updateStatusFilter() {
     
     const statusSet = new Set();
     let temVencido = false;
-    let temEminente = false;
+    let temIminente = false;
     
     contasDoMes.forEach(c => {
         if (c.status === 'PAGO') {
@@ -1181,7 +1184,7 @@ function updateStatusFilter() {
                 const quinzeDias = new Date(hoje);
                 quinzeDias.setDate(quinzeDias.getDate() + 15);
                 if (dataVenc <= quinzeDias) {
-                    temEminente = true;
+                    temIminente = true;
                 }
             }
         }
@@ -1206,10 +1209,10 @@ function updateStatusFilter() {
             select.appendChild(opt);
         }
         
-        if (temEminente) {
+        if (temIminente) {
             const opt = document.createElement('option');
-            opt.value = 'EMINENTE';
-            opt.textContent = 'Eminente';
+            opt.value = 'IMINENTE';
+            opt.textContent = 'Iminente';
             select.appendChild(opt);
         }
         
@@ -1250,7 +1253,7 @@ function filterContas() {
                 dataVenc.setHours(0, 0, 0, 0);
                 return dataVenc <= hoje;
             }
-            if (filterStatus === 'EMINENTE') {
+            if (filterStatus === 'IMINENTE') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
@@ -1396,7 +1399,7 @@ function getStatusDinamico(conta) {
     const quinzeDias = new Date(hoje);
     quinzeDias.setDate(quinzeDias.getDate() + 15);
     
-    if (dataVenc <= quinzeDias) return 'EMINENTE';
+    if (dataVenc <= quinzeDias) return 'IMINENTE';
     
     return 'PENDENTE';
 }
@@ -1405,7 +1408,7 @@ function getStatusBadge(status) {
     const statusMap = {
         'PAGO': { class: 'entregue', text: 'Pago' },
         'VENCIDO': { class: 'devolvido', text: 'Vencido' },
-        'EMINENTE': { class: 'rota', text: 'Eminente' },
+        'IMINENTE': { class: 'rota', text: 'Iminente' },
         'PENDENTE': { class: 'transito', text: 'Pendente' }
     };
     
@@ -1428,5 +1431,3 @@ function showMessage(message, type) {
         setTimeout(() => messageDiv.remove(), 300);
     }, 3000);
 }
-
-
