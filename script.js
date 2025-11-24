@@ -835,8 +835,8 @@ window.generatePDFPagas = async function() {
         // Tabela de contas
         contasPagas.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
 
-        doc.setFontSize(9);
-        const colWidths = [55, 23, 25, 30, 23, 24];
+        doc.setFontSize(8);
+        const colWidths = [50, 24, 24, 28, 28, 26];
         const startX = margin;
 
         // Cabeçalho da tabela - CINZA
@@ -846,7 +846,7 @@ window.generatePDFPagas = async function() {
         doc.setTextColor(255, 255, 255);
         
         let xPos = startX + 2;
-        doc.text('DESCRIÇÃO', xPos, yPos + 5);
+        doc.text('DESCRICAO', xPos, yPos + 5);
         xPos += colWidths[0];
         doc.text('VENCIMENTO', xPos, yPos + 5);
         xPos += colWidths[1];
@@ -871,24 +871,54 @@ window.generatePDFPagas = async function() {
             }
 
             const bgColor = index % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
+            
+            // Preparar descrição com quebra de linha
+            const maxCharsPerLine = 22;
+            const descricaoCompleta = conta.descricao;
+            const descricaoLines = [];
+            
+            if (descricaoCompleta.length > maxCharsPerLine) {
+                // Quebrar em múltiplas linhas
+                for (let i = 0; i < descricaoCompleta.length; i += maxCharsPerLine) {
+                    descricaoLines.push(descricaoCompleta.substring(i, i + maxCharsPerLine));
+                }
+            } else {
+                descricaoLines.push(descricaoCompleta);
+            }
+            
+            // Limitar a 2 linhas máximo
+            const linesToShow = descricaoLines.slice(0, 2);
+            const rowHeight = linesToShow.length > 1 ? 12 : 8;
+
             doc.setFillColor(...bgColor);
-            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5], 8, 'F');
+            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5], rowHeight, 'F');
 
             xPos = startX + 2;
-            doc.text(conta.descricao.substring(0, 25), xPos, yPos + 5);
+            
+            // Descrição com múltiplas linhas
+            linesToShow.forEach((linha, idx) => {
+                doc.text(linha, xPos, yPos + 5 + (idx * 4));
+            });
+            
             xPos += colWidths[0];
             doc.text(formatDate(conta.data_vencimento), xPos, yPos + 5);
+            
             xPos += colWidths[1];
             doc.text(conta.data_pagamento ? formatDate(conta.data_pagamento) : '-', xPos, yPos + 5);
+            
             xPos += colWidths[2];
-            doc.text(conta.forma_pagamento.substring(0, 10), xPos, yPos + 5);
+            const formaPgto = conta.forma_pagamento.substring(0, 10);
+            doc.text(formaPgto, xPos, yPos + 5);
+            
             xPos += colWidths[3];
-            doc.text(conta.banco.substring(0, 12), xPos, yPos + 5);
+            const banco = conta.banco.substring(0, 11);
+            doc.text(banco, xPos, yPos + 5);
+            
             xPos += colWidths[4];
             doc.text(`R$ ${parseFloat(conta.valor).toFixed(2)}`, xPos, yPos + 5);
 
             totalPago += parseFloat(conta.valor);
-            yPos += 8;
+            yPos += rowHeight;
         });
 
         // Total
@@ -981,8 +1011,8 @@ window.generatePDFNaoPagas = async function() {
         // Tabela de contas
         contasNaoPagas.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
 
-        doc.setFontSize(9);
-        const colWidths = [65, 25, 30, 35, 25];
+        doc.setFontSize(8);
+        const colWidths = [60, 26, 32, 32, 30];
         const startX = margin;
 
         // Cabeçalho da tabela - CINZA
@@ -992,7 +1022,7 @@ window.generatePDFNaoPagas = async function() {
         doc.setTextColor(255, 255, 255);
         
         let xPos = startX + 2;
-        doc.text('DESCRIÇÃO', xPos, yPos + 5);
+        doc.text('DESCRICAO', xPos, yPos + 5);
         xPos += colWidths[0];
         doc.text('VENCIMENTO', xPos, yPos + 5);
         xPos += colWidths[1];
@@ -1015,22 +1045,51 @@ window.generatePDFNaoPagas = async function() {
             }
 
             const bgColor = index % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
+            
+            // Preparar descrição com quebra de linha
+            const maxCharsPerLine = 27;
+            const descricaoCompleta = conta.descricao;
+            const descricaoLines = [];
+            
+            if (descricaoCompleta.length > maxCharsPerLine) {
+                // Quebrar em múltiplas linhas
+                for (let i = 0; i < descricaoCompleta.length; i += maxCharsPerLine) {
+                    descricaoLines.push(descricaoCompleta.substring(i, i + maxCharsPerLine));
+                }
+            } else {
+                descricaoLines.push(descricaoCompleta);
+            }
+            
+            // Limitar a 2 linhas máximo
+            const linesToShow = descricaoLines.slice(0, 2);
+            const rowHeight = linesToShow.length > 1 ? 12 : 8;
+
             doc.setFillColor(...bgColor);
-            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], 8, 'F');
+            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], rowHeight, 'F');
 
             xPos = startX + 2;
-            doc.text(conta.descricao.substring(0, 30), xPos, yPos + 5);
+            
+            // Descrição com múltiplas linhas
+            linesToShow.forEach((linha, idx) => {
+                doc.text(linha, xPos, yPos + 5 + (idx * 4));
+            });
+            
             xPos += colWidths[0];
             doc.text(formatDate(conta.data_vencimento), xPos, yPos + 5);
+            
             xPos += colWidths[1];
-            doc.text(conta.forma_pagamento.substring(0, 12), xPos, yPos + 5);
+            const formaPgto = conta.forma_pagamento.substring(0, 12);
+            doc.text(formaPgto, xPos, yPos + 5);
+            
             xPos += colWidths[2];
-            doc.text(conta.banco.substring(0, 15), xPos, yPos + 5);
+            const banco = conta.banco.substring(0, 13);
+            doc.text(banco, xPos, yPos + 5);
+            
             xPos += colWidths[3];
             doc.text(`R$ ${parseFloat(conta.valor).toFixed(2)}`, xPos, yPos + 5);
 
             totalPendente += parseFloat(conta.valor);
-            yPos += 8;
+            yPos += rowHeight;
         });
 
         // Total
