@@ -2,10 +2,10 @@
   "name": "contas-pagar",
   "version": "2.0.0",
   "description": "Sistema de Gerenciamento de Contas a Pagar",
-  "main": "server/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "nodemon server/index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [
     "contas",
