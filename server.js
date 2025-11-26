@@ -21,7 +21,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'X-Session-Token', 'Accept']
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware de autenticação simples
 const authenticateToken = (req, res, next) => {
