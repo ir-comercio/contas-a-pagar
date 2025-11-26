@@ -5,8 +5,8 @@
     --text-primary: #F9FAFB;
     --text-secondary: #9CA3AF;
     --border-color: #374151;
-    --btn-register: #CC7000;
-    --btn-register-hover: #E68200;
+    --btn-register: #0077c7;
+    --btn-register-hover: #0088e0;
     --btn-success: #22C55E;
     --btn-danger: #EF4444;
     --status-success: #10B981;
@@ -352,7 +352,7 @@ td {
 }
 
 tr:hover {
-    background: rgba(204, 112, 0, 0.1);
+    background: rgba(0, 119, 199, 0.1);
 }
 
 .row-pago {
