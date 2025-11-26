@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTAS A PAGAR</title>
+    <link rel="icon" type="png" href="I.R.-COMERCIO-E-MATERIAIS-ELETRICOS-PRETO.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <h1 class="splash-title">CONTAS A PAGAR</h1>
+    </div>
+
+    <!-- Botões Flutuantes -->
+    <div class="floating-buttons">
+        <button onclick="toggleForm()" class="fab fab-primary" title="REGISTRAR CONTA">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"/><path d="M12 5v14"/>
+            </svg>
+        </button>
+        <button onclick="generatePDFPagas()" class="fab fab-success" title="RESUMO DE PAGAMENTOS">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5"/><path d="M18 12h.01"/><path d="M19 22v-6"/><path d="m22 19-3-3-3 3"/><path d="M6 12h.01"/><circle cx="12" cy="12" r="2"/>
+            </svg>
+        </button>
+        <button onclick="generatePDFNaoPagas()" class="fab fab-danger" title="RESUMO DE PENDÊNCIAS">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5"/><path d="m17 17 5 5"/><path d="M18 12h.01"/><path d="m22 17-5 5"/><path d="M6 12h.01"/><circle cx="12" cy="12" r="2"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="app-content">
+        <div class="container">
+            <div class="header">
+                <h1>CONTAS A PAGAR</h1>
+                <div id="connectionStatus" class="connection-status offline">
+                    <span class="status-dot"></span>
+                </div>
+            </div>
+
+            <!-- NAVEGAÇÃO POR MESES -->
+            <div class="card">
+                <div class="month-navigation">
+                    <button onclick="previousMonth()" class="month-nav-btn">ANTERIOR</button>
+                    <h3 id="currentMonthDisplay" class="month-display">CARREGANDO...</h3>
+                    <button onclick="nextMonth()" class="month-nav-btn">PRÓXIMO</button>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-label">PAGOS</div>
+                    <div class="stat-value stat-success" id="statPagos">0</div>
+                </div>
+                <div class="stat-card stat-card-alert" id="cardAtraso">
+                    <div class="stat-label">VENCIDO</div>
+                    <div class="stat-value stat-danger" id="statAtraso">0</div>
+                    <div class="pulse-badge" id="pulseBadgeAtraso" style="display: none;">!</div>
+                </div>
+                <div class="stat-card stat-card-warning" id="cardEminente">
+                    <div class="stat-label">VENCE EM 15 DIAS</div>
+                    <div class="stat-value stat-warning" id="statEminente">0</div>
+                    <div class="pulse-badge" id="pulseBadgeEminente" style="display: none;">!</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">VALOR TOTAL</div>
+                    <div class="stat-value stat-success" id="statValorTotal">R$ 0,00</div>
+                </div>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="card">
+                <h2>FILTROS</h2>
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="search">PESQUISAR</label>
+                        <input type="text" id="search" placeholder="DESCRIÇÃO, BANCO..." oninput="filterContas()">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterBanco">BANCO</label>
+                        <select id="filterBanco" onchange="filterContas()">
+                            <option value="">TODOS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterStatus">STATUS</label>
+                        <select id="filterStatus" onchange="filterContas()">
+                            <option value="">TODOS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterFrequencia">PARCELAS</label>
+                        <select id="filterFrequencia" onchange="filterContas()">
+                            <option value="">TODAS</option>
+                            <option value="PARCELA_UNICA">PARCELA ÚNICA</option>
+                            <option value="1_PARCELA">1ª PARCELA</option>
+                            <option value="2_PARCELA">2ª PARCELA</option>
+                            <option value="3_PARCELA">3ª PARCELA</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTA DE CONTAS -->
+            <div class="card">
+                <h2>LISTA DE CONTAS</h2>
+                <div id="contasContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
