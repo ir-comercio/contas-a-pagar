@@ -164,8 +164,17 @@ async function loadContas() {
 
         if (!response.ok) return;
 
+        // CORREÇÃO CRÍTICA: API agora retorna array direto
         const data = await response.json();
-        contas = data;
+        
+        // Garantir que data é um array
+        if (Array.isArray(data)) {
+            contas = data;
+        } else {
+            console.error('Resposta da API não é um array:', data);
+            contas = [];
+            return;
+        }
         
         const newHash = JSON.stringify(contas.map(c => c.id));
         if (newHash !== lastDataHash) {
@@ -457,19 +466,17 @@ async function handleSubmit(event) {
         frequencia: document.getElementById('frequencia').value,
         forma_pagamento: document.getElementById('forma_pagamento').value,
         banco: document.getElementById('banco').value,
-        observacoes: document.getElementById('observacoes').value.trim(),
-        status: 'PENDENTE',
-        data_pagamento: null
+        observacoes: document.getElementById('observacoes').value.trim() || null
     };
 
     const editId = document.getElementById('editId').value;
 
+    // Ao editar, preservar status e data_pagamento
     if (editId) {
         const contaExistente = contas.find(c => String(c.id) === String(editId));
         if (contaExistente) {
             formData.status = contaExistente.status;
             formData.data_pagamento = contaExistente.data_pagamento;
-            formData.timestamp = contaExistente.timestamp;
         }
     }
 
@@ -502,11 +509,12 @@ async function handleSubmit(event) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.details || 'Erro ao salvar');
+            throw new Error(errorData.message || 'Erro ao salvar');
         }
 
         const savedData = await response.json();
 
+        // Atualizar array local
         if (editId) {
             const index = contas.findIndex(c => String(c.id) === String(editId));
             if (index !== -1) contas[index] = savedData;
@@ -525,7 +533,6 @@ async function handleSubmit(event) {
     } catch (error) {
         console.error('Erro:', error);
         showMessage(`Erro: ${error.message}`, 'error');
-        closeFormModal();
     }
 }
 
@@ -538,18 +545,18 @@ window.togglePago = async function(id) {
     
     if (!conta) return;
 
-    if (conta.status === 'PAGO') {
-        conta.status = 'PENDENTE';
-        conta.data_pagamento = null;
-        updateDashboard();
-        filterContas();
-    } else {
-        const hoje = new Date().toISOString().split('T')[0];
-        conta.status = 'PAGO';
-        conta.data_pagamento = hoje;
-        updateDashboard();
-        filterContas();
-    }
+    const novoStatus = conta.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
+    const novaDataPagamento = novoStatus === 'PAGO' ? new Date().toISOString().split('T')[0] : null;
+
+    // Atualizar localmente primeiro (UI otimista)
+    const statusAnterior = conta.status;
+    const dataPagamentoAnterior = conta.data_pagamento;
+    
+    conta.status = novoStatus;
+    conta.data_pagamento = novaDataPagamento;
+    
+    updateDashboard();
+    filterContas();
 
     if (isOnline) {
         try {
@@ -561,8 +568,8 @@ window.togglePago = async function(id) {
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({ 
-                    status: conta.status,
-                    data_pagamento: conta.data_pagamento
+                    status: novoStatus,
+                    data_pagamento: novaDataPagamento
                 }),
                 mode: 'cors'
             });
@@ -575,8 +582,9 @@ window.togglePago = async function(id) {
 
         } catch (error) {
             console.error('Erro ao atualizar status:', error);
-            conta.status = conta.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
-            conta.data_pagamento = conta.status === 'PAGO' ? new Date().toISOString().split('T')[0] : null;
+            // Reverter mudança local
+            conta.status = statusAnterior;
+            conta.data_pagamento = dataPagamentoAnterior;
             updateDashboard();
             filterContas();
             showMessage('Erro ao atualizar status', 'error');
@@ -617,6 +625,8 @@ window.deleteConta = async function(id) {
 
     const idStr = String(id);
     const deletedConta = contas.find(c => String(c.id) === idStr);
+    
+    // Remover localmente primeiro
     contas = contas.filter(c => String(c.id) !== idStr);
     updateAllFilters();
     updateDashboard();
@@ -636,6 +646,8 @@ window.deleteConta = async function(id) {
 
             if (!response.ok) throw new Error('Erro ao deletar');
         } catch (error) {
+            console.error('Erro ao excluir:', error);
+            // Restaurar conta se falhou
             if (deletedConta) {
                 contas.push(deletedConta);
                 updateAllFilters();
@@ -680,7 +692,7 @@ window.viewConta = function(id) {
                             <p><strong>Data Vencimento:</strong> ${formatDate(conta.data_vencimento)}</p>
                             <p><strong>Frequência:</strong> ${getFrequenciaText(conta.frequencia)}</p>
                             ${conta.observacoes ? `<p><strong>Observações:</strong> ${conta.observacoes}</p>` : ''}
-                            <p><strong>Status:</strong> ${getStatusBadge(conta.status)}</p>
+                            <p><strong>Status:</strong> ${getStatusBadge(getStatusDinamico(conta))}</p>
                         </div>
                     </div>
 
@@ -758,7 +770,9 @@ function updateStatusFilter() {
     
     const statusSet = new Set();
     let temAtraso = false;
-    let temEminente = false;
+    let temEmin// CONTINUAÇÃO DO CÓDIGO - Cole depois da linha "let temEmin"
+
+ente = false;
     
     contas.forEach(c => {
         if (c.status === 'PAGO') {
