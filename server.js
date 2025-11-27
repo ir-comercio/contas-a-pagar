@@ -1,17 +1,17 @@
 // ============================================
-// SERVIDOR NODE.JS - CONTAS A PAGAR
-// API com CORS configurado para Render
+// SERVIDOR UNIFICADO - CONTAS A PAGAR
+// API + Frontend em um único deploy
 // ============================================
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 
 // ============================================
 // CONFIGURAÇÃO DE CORS
 // ============================================
 
-// Lista de origens permitidas (adicione todos os domínios que precisam acessar a API)
 const allowedOrigins = [
     'https://contas-a-pagar-ytr6.onrender.com',
     'https://ir-comercio-portal-zcan.onrender.com',
@@ -21,28 +21,22 @@ const allowedOrigins = [
     'http://127.0.0.1:5000'
 ];
 
-// Configuração do CORS
 const corsOptions = {
     origin: function (origin, callback) {
-        // Permitir requisições sem origin (mobile apps, Postman, etc)
         if (!origin) return callback(null, true);
-        
-        // Verificar se a origin está na lista de permitidas
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            console.log('❌ Origin bloqueada:', origin);
-            callback(new Error('Not allowed by CORS'));
+            callback(null, true); // Permite todas para frontend servido pelo mesmo servidor
         }
     },
-    credentials: true, // Permite cookies e autenticação
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    maxAge: 86400 // Cache preflight por 24 horas
+    maxAge: 86400
 };
 
-// Aplicar CORS
 app.use(cors(corsOptions));
 
 // ============================================
@@ -52,9 +46,12 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Log de todas as requisições
+// Servir arquivos estáticos (HTML, CSS, JS)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Log de requisições
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'no-origin'}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
 });
 
@@ -64,7 +61,7 @@ app.use((req, res, next) => {
 
 let contas = [];
 
-// Dados de exemplo (opcional - remover em produção)
+// Dados de exemplo
 contas = [
     {
         id: '1',
@@ -100,7 +97,6 @@ contas = [
 // FUNÇÕES AUXILIARES
 // ============================================
 
-// Calcular status dinâmico
 function calcularStatusDinamico(conta) {
     if (conta.status === 'PAGO') return 'PAGO';
     if (conta.status === 'CANCELADO') return 'CANCELADO';
@@ -118,7 +114,6 @@ function calcularStatusDinamico(conta) {
     return 'PENDENTE';
 }
 
-// Gerar ID único
 function gerarId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
@@ -126,20 +121,6 @@ function gerarId() {
 // ============================================
 // ROTAS DA API
 // ============================================
-
-// Rota raiz - Health Check
-app.get('/', (req, res) => {
-    res.json({
-        status: 'online',
-        message: 'API Contas a Pagar está funcionando! ✅',
-        version: '1.0.0',
-        timestamp: new Date().toISOString(),
-        endpoints: {
-            contas: '/api/contas',
-            health: '/health'
-        }
-    });
-});
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -150,10 +131,6 @@ app.get('/health', (req, res) => {
         totalContas: contas.length
     });
 });
-
-// ============================================
-// ROTAS DE CONTAS
-// ============================================
 
 // GET /api/contas - Listar todas as contas
 app.get('/api/contas', (req, res) => {
@@ -219,7 +196,6 @@ app.post('/api/contas', (req, res) => {
             updated_at: new Date().toISOString()
         };
         
-        // Validações básicas
         if (!novaConta.descricao || !novaConta.valor || !novaConta.data_vencimento) {
             return res.status(400).json({
                 success: false,
@@ -263,7 +239,7 @@ app.put('/api/contas/:id', (req, res) => {
         const contaAtualizada = {
             ...contas[index],
             ...req.body,
-            id: req.params.id, // Mantém o ID original
+            id: req.params.id,
             updated_at: new Date().toISOString()
         };
         
@@ -299,7 +275,6 @@ app.patch('/api/contas/:id', (req, res) => {
             });
         }
         
-        // Atualiza apenas os campos enviados
         contas[index] = {
             ...contas[index],
             ...req.body,
@@ -354,16 +329,9 @@ app.delete('/api/contas/:id', (req, res) => {
     }
 });
 
-// ============================================
-// ROTAS DE DASHBOARD
-// ============================================
-
 // GET /api/dashboard - Estatísticas
 app.get('/api/dashboard', (req, res) => {
     try {
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        
         const stats = {
             total: contas.length,
             pagos: 0,
@@ -407,13 +375,22 @@ app.get('/api/dashboard', (req, res) => {
 });
 
 // ============================================
-// TRATAMENTO DE ERROS 404
+// ROTA RAIZ - SERVIR FRONTEND
 // ============================================
 
-app.use((req, res) => {
+// Todas as outras rotas servem o index.html (SPA)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ============================================
+// TRATAMENTO DE ERROS 404 PARA API
+// ============================================
+
+app.use('/api/*', (req, res) => {
     res.status(404).json({
         success: false,
-        error: 'Rota não encontrada',
+        error: 'Rota da API não encontrada',
         path: req.path,
         method: req.method
     });
@@ -428,14 +405,14 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log('');
     console.log('===============================================');
-    console.log('🚀 SERVIDOR CONTAS A PAGAR - INICIADO');
+    console.log('🚀 SERVIDOR UNIFICADO - CONTAS A PAGAR');
     console.log('===============================================');
     console.log(`✅ Servidor rodando na porta: ${PORT}`);
     console.log(`🌐 URL: http://localhost:${PORT}`);
     console.log(`📊 Total de contas: ${contas.length}`);
     console.log('');
     console.log('📋 Endpoints disponíveis:');
-    console.log('   GET    /                - Health check');
+    console.log('   GET    /                - Frontend (Interface Visual)');
     console.log('   GET    /health          - Status do servidor');
     console.log('   GET    /api/contas      - Listar todas as contas');
     console.log('   GET    /api/contas/:id  - Buscar conta específica');
@@ -444,16 +421,10 @@ app.listen(PORT, () => {
     console.log('   PATCH  /api/contas/:id  - Atualizar parcialmente');
     console.log('   DELETE /api/contas/:id  - Deletar conta');
     console.log('   GET    /api/dashboard   - Estatísticas');
-    console.log('');
-    console.log('🔐 CORS configurado para:');
-    allowedOrigins.forEach(origin => {
-        console.log(`   ✓ ${origin}`);
-    });
     console.log('===============================================');
     console.log('');
 });
 
-// Tratamento de erros não capturados
 process.on('unhandledRejection', (reason, promise) => {
     console.error('❌ Unhandled Rejection:', reason);
 });
