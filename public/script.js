@@ -19,7 +19,7 @@ const meses = [
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-console.log('Contas a Pagar iniciada - Modo offline habilitado');
+console.log('🚀 Contas a Pagar iniciada');
 
 document.addEventListener('DOMContentLoaded', () => {
     verificarAutenticacao();
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function saveToLocalStorage() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(contas));
-        console.log('Dados salvos localmente');
+        console.log('💾 Dados salvos localmente');
     } catch (error) {
         console.error('Erro ao salvar no localStorage:', error);
     }
@@ -42,7 +42,7 @@ function loadFromLocalStorage() {
         const data = localStorage.getItem(STORAGE_KEY);
         if (data) {
             contas = JSON.parse(data);
-            console.log(`${contas.length} contas carregadas do armazenamento local`);
+            console.log(`📊 ${contas.length} contas carregadas do armazenamento local`);
             updateAllFilters();
             updateDashboard();
             filterContas();
@@ -133,14 +133,16 @@ function inicializarApp() {
 // ============================================
 async function checkServerStatus() {
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         const response = await fetch(`${API_URL}/contas`, {
-            method: 'GET',
-            headers: { 
-                'X-Session-Token': sessionToken,
-                'Accept': 'application/json'
-            },
-            mode: 'cors'
+            method: 'HEAD',
+            headers: { 'X-Session-Token': sessionToken },
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
 
         if (response.status === 401) {
             sessionStorage.removeItem('contasPagarSession');
@@ -152,16 +154,20 @@ async function checkServerStatus() {
         isOnline = response.ok;
         
         if (wasOffline && isOnline) {
-            console.log('Servidor online - Sincronizando...');
+            console.log('✅ Servidor ONLINE');
             await syncWithServer();
+        } else if (!wasOffline && !isOnline) {
+            console.log('❌ Servidor OFFLINE');
         }
         
         updateConnectionStatus();
         return isOnline;
     } catch (error) {
+        if (isOnline) {
+            console.log('❌ Erro de conexão:', error.message);
+        }
         isOnline = false;
         updateConnectionStatus();
-        console.log('Modo offline - Dados salvos localmente');
         return false;
     }
 }
@@ -181,12 +187,7 @@ async function syncWithServer() {
 
     try {
         const response = await fetch(`${API_URL}/contas`, {
-            method: 'GET',
-            headers: { 
-                'X-Session-Token': sessionToken,
-                'Accept': 'application/json'
-            },
-            mode: 'cors'
+            headers: { 'X-Session-Token': sessionToken }
         });
 
         if (response.status === 401) {
@@ -207,13 +208,13 @@ async function syncWithServer() {
         const newHash = JSON.stringify(contas.map(c => c.id));
         if (newHash !== lastDataHash) {
             lastDataHash = newHash;
-            console.log(`Sincronização completa: ${contas.length} contas`);
+            console.log(`📊 ${contas.length} contas carregadas`);
             updateAllFilters();
             updateDashboard();
             filterContas();
         }
     } catch (error) {
-        console.error('Erro ao sincronizar:', error);
+        // Silencioso
     }
 }
 
@@ -292,19 +293,19 @@ function updateDashboard() {
 }
 
 // ============================================
-// MODAL DE CONFIRMAÇÃO (IGUAL CONTROLE FRETE)
+// MODAL DE CONFIRMAÇÃO
 // ============================================
 function showConfirm(message, options = {}) {
     return new Promise((resolve) => {
         const { title = 'Confirmação', confirmText = 'Confirmar', cancelText = 'Cancelar', type = 'warning' } = options;
 
         const modalHTML = `
-            <div class="modal-overlay" id="confirmModal" style="z-index: 10001;">
-                <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-overlay" id="confirmModal">
+                <div class="modal-content">
                     <div class="modal-header">
                         <h3 class="modal-title">${title}</h3>
                     </div>
-                    <p style="margin: 1.5rem 0; color: var(--text-primary); font-size: 1rem; line-height: 1.6;">${message}</p>
+                    <p class="modal-message">${message}</p>
                     <div class="modal-actions">
                         <button class="secondary" id="modalCancelBtn">${cancelText}</button>
                         <button class="${type === 'warning' ? 'danger' : 'success'}" id="modalConfirmBtn">${confirmText}</button>
@@ -351,7 +352,7 @@ function showParcelasModal(conta) {
 
         const modalHTML = `
             <div class="modal-overlay" id="parcelasModal" style="z-index: 10002;">
-                <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-content">
                     <div class="modal-header">
                         <h3 class="modal-title">Quantas Parcelas Estão Sendo Pagas?</h3>
                     </div>
@@ -420,12 +421,12 @@ function showQuantidadeModal(maxParcelas) {
 
         const modalHTML = `
             <div class="modal-overlay" id="quantidadeModal" style="z-index: 10002;">
-                <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-content">
                     <div class="modal-header">
                         <h3 class="modal-title">Quantas Parcelas?</h3>
                     </div>
                     <div style="margin: 1.5rem 0;">
-                        <select id="selectQuantidade" class="form-control" style="width: 100%; padding: 10px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <select id="selectQuantidade" style="width: 100%; padding: 10px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
                             ${options.join('')}
                         </select>
                     </div>
@@ -487,7 +488,7 @@ function showFormModal(editingId = null) {
 
     const modalHTML = `
         <div class="modal-overlay" id="formModal">
-            <div class="modal-content">
+            <div class="modal-content large">
                 <div class="modal-header">
                     <h3 class="modal-title">${isEditing ? 'Editar Conta' : 'Nova Conta'}</h3>
                 </div>
@@ -559,8 +560,8 @@ function showFormModal(editingId = null) {
                         </div>
 
                         <div class="modal-actions">
-                            <button type="submit" class="save">${isEditing ? 'Atualizar' : 'Salvar'}</button>
                             <button type="button" class="secondary" onclick="closeFormModal(true)">Cancelar</button>
+                            <button type="submit" class="save">${isEditing ? 'Atualizar' : 'Salvar'}</button>
                         </div>
                     </form>
                 </div>
@@ -637,7 +638,7 @@ async function handleSubmit(event) {
         if (index !== -1) {
             contas[index] = { ...contas[index], ...formData };
             saveToLocalStorage();
-            showMessage('Conta atualizada localmente!', 'success');
+            showMessage('Atualizado!', 'success');
         }
     } else {
         const novaConta = {
@@ -647,7 +648,7 @@ async function handleSubmit(event) {
         };
         contas.push(novaConta);
         saveToLocalStorage();
-        showMessage('Conta criada localmente!', 'success');
+        showMessage('Criado!', 'success');
     }
 
     updateAllFilters();
@@ -664,11 +665,9 @@ async function handleSubmit(event) {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Session-Token': sessionToken,
-                    'Accept': 'application/json'
+                    'X-Session-Token': sessionToken
                 },
-                body: JSON.stringify(formData),
-                mode: 'cors'
+                body: JSON.stringify(formData)
             });
 
             if (response.status === 401) {
@@ -689,13 +688,12 @@ async function handleSubmit(event) {
                 }
                 
                 saveToLocalStorage();
-                console.log('Sincronizado com servidor');
                 updateAllFilters();
                 updateDashboard();
                 filterContas();
             }
         } catch (error) {
-            console.log('Erro ao sincronizar, mas dados salvos localmente:', error);
+            console.log('Erro ao sincronizar, mas dados salvos localmente');
         }
     }
 }
@@ -728,15 +726,13 @@ window.togglePago = async function(id) {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Session-Token': sessionToken,
-                            'Accept': 'application/json'
+                            'X-Session-Token': sessionToken
                         },
                         body: JSON.stringify({ 
                             status: 'PAGO',
                             data_pagamento: hoje,
                             parcelas_pagas: opcao
-                        }),
-                        mode: 'cors'
+                        })
                     });
 
                     if (response.ok) {
@@ -745,7 +741,7 @@ window.togglePago = async function(id) {
                         return;
                     }
                 } catch (error) {
-                    console.log('Erro ao sincronizar, mas salvo localmente:', error);
+                    console.log('Erro ao sincronizar, mas salvo localmente');
                 }
             }
         } else {
@@ -765,14 +761,12 @@ window.togglePago = async function(id) {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Session-Token': sessionToken,
-                    'Accept': 'application/json'
+                    'X-Session-Token': sessionToken
                 },
                 body: JSON.stringify({ 
                     status: conta.status,
                     data_pagamento: conta.data_pagamento
-                }),
-                mode: 'cors'
+                })
             });
 
             if (response.ok) {
@@ -785,7 +779,7 @@ window.togglePago = async function(id) {
                 }
             }
         } catch (error) {
-            console.log('Erro ao sincronizar status, mas salvo localmente:', error);
+            console.log('Erro ao sincronizar status, mas salvo localmente');
         }
     }
 };
@@ -828,24 +822,20 @@ window.deleteConta = async function(id) {
     updateAllFilters();
     updateDashboard();
     filterContas();
-    showMessage('Conta excluída!', 'success');
+    showMessage('Excluído!', 'error');
 
     if (isOnline && !idStr.startsWith('local_')) {
         try {
             const response = await fetch(`${API_URL}/contas/${idStr}`, {
                 method: 'DELETE',
-                headers: {
-                    'X-Session-Token': sessionToken,
-                    'Accept': 'application/json'
-                },
-                mode: 'cors'
+                headers: { 'X-Session-Token': sessionToken }
             });
 
             if (response.ok) {
                 console.log('Conta excluída no servidor');
             }
         } catch (error) {
-            console.log('Erro ao excluir no servidor, mas removida localmente:', error);
+            console.log('Erro ao excluir no servidor, mas removida localmente');
         }
     }
 };
@@ -866,7 +856,7 @@ window.viewConta = function(id) {
 
     const modalHTML = `
         <div class="modal-overlay" id="viewModal">
-            <div class="modal-content">
+            <div class="modal-content large">
                 <div class="modal-header">
                     <h3 class="modal-title">Detalhes da Conta</h3>
                 </div>
@@ -1202,7 +1192,7 @@ function getStatusBadge(status) {
 }
 
 // ============================================
-// MENSAGENS (IGUAL CONTROLE FRETE)
+// MENSAGENS
 // ============================================
 function showMessage(message, type) {
     const oldMessages = document.querySelectorAll('.floating-message');
