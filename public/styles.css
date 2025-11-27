@@ -15,6 +15,15 @@
     --status-info: #3B82F6;
 }
 
+[data-theme="light"] {
+    --bg-primary: #F3F4F6;
+    --bg-secondary: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --text-primary: #111827;
+    --text-secondary: #6B7280;
+    --border-color: #E5E7EB;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -26,7 +35,6 @@ body {
     background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
     color: var(--text-primary);
     min-height: 100vh;
-    text-transform: uppercase;
 }
 
 /* SPLASH SCREEN */
@@ -59,54 +67,6 @@ body {
     display: none;
 }
 
-/* BOTÕES FLUTUANTES */
-.floating-buttons {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    z-index: 1000;
-}
-
-.fab {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s ease;
-}
-
-.fab:hover {
-    transform: scale(1.1) rotate(5deg);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-}
-
-.fab svg {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.fab-primary {
-    background: linear-gradient(135deg, var(--btn-register), var(--btn-register-hover));
-    color: white;
-}
-
-.fab-success {
-    background: linear-gradient(135deg, #10B981, #22C55E);
-    color: white;
-}
-
-.fab-danger {
-    background: linear-gradient(135deg, #DC2626, #EF4444);
-    color: white;
-}
-
 /* CONTAINER */
 .container {
     max-width: 1400px;
@@ -125,6 +85,68 @@ body {
 .header h1 {
     font-size: 2rem;
     color: var(--btn-register);
+}
+
+/* THEME TOGGLE */
+.theme-toggle {
+    position: relative;
+    width: 60px;
+    height: 30px;
+    background: var(--border-color);
+    border-radius: 15px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin-left: 1rem;
+}
+
+.theme-toggle::before {
+    content: '🌙';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    background: var(--bg-secondary);
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+[data-theme="light"] .theme-toggle::before {
+    content: '☀️';
+    transform: translateX(30px);
+}
+
+[data-theme="light"] .theme-toggle {
+    background: var(--btn-register);
+}
+
+/* BUTTON WRAPPER */
+.button-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+.register {
+    background: var(--btn-register);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.register:hover {
+    background: var(--btn-register-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 119, 199, 0.4);
 }
 
 /* CONNECTION STATUS */
@@ -270,6 +292,7 @@ body {
 .stat-success { color: var(--status-success); }
 .stat-danger { color: var(--status-danger); }
 .stat-warning { color: var(--status-warning); }
+.stat-gray { color: var(--text-secondary); }
 
 .pulse-badge {
     position: absolute;
@@ -355,7 +378,7 @@ tr:hover {
     background: rgba(0, 119, 199, 0.1);
 }
 
-.row-pago {
+.row-pago, .row-entregue {
     opacity: 0.6;
 }
 
@@ -426,6 +449,11 @@ tr:hover {
 .badge.transito {
     background: rgba(59, 130, 246, 0.2);
     color: #3B82F6;
+}
+
+.badge.cancelado {
+    background: rgba(156, 163, 175, 0.2);
+    color: #9CA3AF;
 }
 
 /* BOTÕES DE AÇÃO */
@@ -624,16 +652,17 @@ button:hover {
     font-weight: 600;
     z-index: 10001;
     animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes slideIn {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes slideOut {
-    from { transform: translateX(0); }
-    to { transform: translateX(100%); }
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
 }
 
 .floating-message.success {
@@ -665,16 +694,6 @@ button:hover {
 @media (max-width: 768px) {
     .container {
         padding: 1rem;
-    }
-    
-    .floating-buttons {
-        bottom: 20px;
-        right: 20px;
-    }
-    
-    .fab {
-        width: 50px;
-        height: 50px;
     }
     
     .dashboard-grid {
