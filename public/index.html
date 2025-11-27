@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contas a Pagar</title>
     <link rel="icon" type="image/png" href="I.R.-COMERCIO-E-MATERIAIS-ELETRICOS-PRETO.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="contas-styles.css">
 </head>
 <body>
     <!-- Splash Screen -->
@@ -30,9 +30,9 @@
             <!-- NAVEGAÇÃO POR MESES -->
             <div class="card">
                 <div class="month-navigation">
-                    <button onclick="previousMonth()" class="month-nav-btn">Anterior</button>
+                    <button onclick="previousMonth()" class="month-nav-btn">← Anterior</button>
                     <h3 id="currentMonthDisplay" class="month-display">Carregando...</h3>
-                    <button onclick="nextMonth()" class="month-nav-btn">Próximo</button>
+                    <button onclick="nextMonth()" class="month-nav-btn">Próximo →</button>
                 </div>
             </div>
 
@@ -101,6 +101,7 @@
 
             <!-- LISTA DE CONTAS -->
             <div class="card">
+                <h2>Lista de Contas</h2>
                 <div id="contasContainer"></div>
             </div>
         </div>
@@ -112,6 +113,6 @@
             if (splash) splash.style.display = 'none';
         }, 3000);
     </script>
-    <script src="script.js"></script>
+    <script src="contas-script.js"></script>
 </body>
 </html>
