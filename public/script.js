@@ -15,32 +15,15 @@ let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 
 const meses = [
-    'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
-    'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-console.log('CONTAS A PAGAR INICIADA - MODO OFFLINE HABILITADO');
+console.log('Contas a Pagar iniciada - Modo offline habilitado');
 
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        document.getElementById('splashScreen').style.display = 'none';
-        document.querySelector('.app-content').style.display = 'block';
-    }, 1500);
     verificarAutenticacao();
 });
-
-// ============================================
-// FORCE UPPERCASE
-// ============================================
-function forceUpperCase(element) {
-    if (!element) return;
-    element.addEventListener('input', (e) => {
-        const start = e.target.selectionStart;
-        const end = e.target.selectionEnd;
-        e.target.value = e.target.value.toUpperCase();
-        e.target.setSelectionRange(start, end);
-    });
-}
 
 // ============================================
 // ARMAZENAMENTO LOCAL
@@ -48,9 +31,9 @@ function forceUpperCase(element) {
 function saveToLocalStorage() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(contas));
-        console.log('DADOS SALVOS LOCALMENTE');
+        console.log('Dados salvos localmente');
     } catch (error) {
-        console.error('ERRO AO SALVAR NO LOCALSTORAGE:', error);
+        console.error('Erro ao salvar no localStorage:', error);
     }
 }
 
@@ -59,13 +42,13 @@ function loadFromLocalStorage() {
         const data = localStorage.getItem(STORAGE_KEY);
         if (data) {
             contas = JSON.parse(data);
-            console.log(`${contas.length} CONTAS CARREGADAS DO ARMAZENAMENTO LOCAL`);
+            console.log(`${contas.length} contas carregadas do armazenamento local`);
             updateAllFilters();
             updateDashboard();
             filterContas();
         }
     } catch (error) {
-        console.error('ERRO AO CARREGAR DO LOCALSTORAGE:', error);
+        console.error('Erro ao carregar do localStorage:', error);
         contas = [];
     }
 }
@@ -131,8 +114,8 @@ function mostrarTelaAcessoNegado(mensagem = 'NÃO AUTORIZADO') {
     document.body.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--bg-primary); color: var(--text-primary); text-align: center; padding: 2rem;">
             <h1 style="font-size: 2.2rem; margin-bottom: 1rem;">${mensagem}</h1>
-            <p style="color: var(--text-secondary); margin-bottom: 2rem;">SOMENTE USUÁRIOS AUTENTICADOS PODEM ACESSAR ESTA ÁREA.</p>
-            <a href="${PORTAL_URL}" style="display: inline-block; background: var(--btn-register); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">IR PARA O PORTAL</a>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Somente usuários autenticados podem acessar esta área.</p>
+            <a href="${PORTAL_URL}" style="display: inline-block; background: var(--btn-register); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ir para o Portal</a>
         </div>
     `;
 }
@@ -161,7 +144,7 @@ async function checkServerStatus() {
 
         if (response.status === 401) {
             sessionStorage.removeItem('contasPagarSession');
-            mostrarTelaAcessoNegado('SUA SESSÃO EXPIROU');
+            mostrarTelaAcessoNegado('Sua sessão expirou');
             return false;
         }
 
@@ -169,7 +152,7 @@ async function checkServerStatus() {
         isOnline = response.ok;
         
         if (wasOffline && isOnline) {
-            console.log('SERVIDOR ONLINE - SINCRONIZANDO...');
+            console.log('Servidor online - Sincronizando...');
             await syncWithServer();
         }
         
@@ -178,7 +161,7 @@ async function checkServerStatus() {
     } catch (error) {
         isOnline = false;
         updateConnectionStatus();
-        console.log('MODO OFFLINE - DADOS SALVOS LOCALMENTE');
+        console.log('Modo offline - Dados salvos localmente');
         return false;
     }
 }
@@ -208,7 +191,7 @@ async function syncWithServer() {
 
         if (response.status === 401) {
             sessionStorage.removeItem('contasPagarSession');
-            mostrarTelaAcessoNegado('SUA SESSÃO EXPIROU');
+            mostrarTelaAcessoNegado('Sua sessão expirou');
             return;
         }
 
@@ -224,13 +207,13 @@ async function syncWithServer() {
         const newHash = JSON.stringify(contas.map(c => c.id));
         if (newHash !== lastDataHash) {
             lastDataHash = newHash;
-            console.log(`SINCRONIZAÇÃO COMPLETA: ${contas.length} CONTAS`);
+            console.log(`Sincronização completa: ${contas.length} contas`);
             updateAllFilters();
             updateDashboard();
             filterContas();
         }
     } catch (error) {
-        console.error('ERRO AO SINCRONIZAR:', error);
+        console.error('Erro ao sincronizar:', error);
     }
 }
 
@@ -309,11 +292,11 @@ function updateDashboard() {
 }
 
 // ============================================
-// MODAL DE CONFIRMAÇÃO
+// MODAL DE CONFIRMAÇÃO (IGUAL CONTROLE FRETE)
 // ============================================
 function showConfirm(message, options = {}) {
     return new Promise((resolve) => {
-        const { title = 'CONFIRMAÇÃO', confirmText = 'CONFIRMAR', cancelText = 'CANCELAR', type = 'warning' } = options;
+        const { title = 'Confirmação', confirmText = 'Confirmar', cancelText = 'Cancelar', type = 'warning' } = options;
 
         const modalHTML = `
             <div class="modal-overlay" id="confirmModal" style="z-index: 10001;">
@@ -360,7 +343,6 @@ function showConfirm(message, options = {}) {
 // ============================================
 function showParcelasModal(conta) {
     return new Promise((resolve) => {
-        // Buscar parcelas futuras do mesmo grupo
         const parcelasFuturas = contas.filter(c => 
             c.grupo_parcelas === conta.grupo_parcelas && 
             c.parcela_atual > conta.parcela_atual &&
@@ -371,36 +353,30 @@ function showParcelasModal(conta) {
             <div class="modal-overlay" id="parcelasModal" style="z-index: 10002;">
                 <div class="modal-content" style="max-width: 500px;">
                     <div class="modal-header">
-                        <h3 class="modal-title">QUANTAS PARCELAS ESTÃO SENDO PAGAS?</h3>
+                        <h3 class="modal-title">Quantas Parcelas Estão Sendo Pagas?</h3>
                     </div>
                     <div style="margin: 1.5rem 0;">
                         <p style="margin-bottom: 1rem; color: var(--text-secondary);">
-                            ESTA É A ${conta.parcela_atual}ª PARCELA${parcelasFuturas > 0 ? ` (${parcelasFuturas} PARCELAS FUTURAS)` : ''}
+                            Esta é a ${conta.parcela_atual}ª parcela${parcelasFuturas > 0 ? ` (${parcelasFuturas} parcelas futuras)` : ''}
                         </p>
                         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                            ${conta.parcela_atual === 1 ? `
-                                <button class="btn-opcao-parcela" data-opcao="APENAS_ESTA">
-                                    APENAS ESTA PARCELA
-                                </button>
-                            ` : `
-                                <button class="btn-opcao-parcela" data-opcao="APENAS_ESTA">
-                                    APENAS ESTA PARCELA
-                                </button>
-                            `}
+                            <button class="btn-opcao-parcela" data-opcao="APENAS_ESTA">
+                                Apenas Esta Parcela
+                            </button>
                             ${parcelasFuturas > 0 ? `
                                 <button class="btn-opcao-parcela" data-opcao="TODAS">
-                                    TODAS AS PARCELAS (${parcelasFuturas + 1} NO TOTAL)
+                                    Todas as Parcelas (${parcelasFuturas + 1} no total)
                                 </button>
                                 ${parcelasFuturas > 1 ? `
                                     <button class="btn-opcao-parcela" data-opcao="CUSTOM">
-                                        ESCOLHER QUANTIDADE
+                                        Escolher Quantidade
                                     </button>
                                 ` : ''}
                             ` : ''}
                         </div>
                     </div>
                     <div class="modal-actions">
-                        <button class="secondary" id="cancelParcelasBtn">CANCELAR</button>
+                        <button class="secondary" id="cancelParcelasBtn">Cancelar</button>
                     </div>
                 </div>
             </div>
@@ -439,23 +415,23 @@ function showQuantidadeModal(maxParcelas) {
     return new Promise((resolve) => {
         const options = [];
         for (let i = 2; i <= maxParcelas + 1; i++) {
-            options.push(`<option value="${i}">${i} PARCELAS</option>`);
+            options.push(`<option value="${i}">${i} Parcelas</option>`);
         }
 
         const modalHTML = `
             <div class="modal-overlay" id="quantidadeModal" style="z-index: 10002;">
                 <div class="modal-content" style="max-width: 400px;">
                     <div class="modal-header">
-                        <h3 class="modal-title">QUANTAS PARCELAS?</h3>
+                        <h3 class="modal-title">Quantas Parcelas?</h3>
                     </div>
                     <div style="margin: 1.5rem 0;">
-                        <select id="selectQuantidade" class="form-control" style="width: 100%; padding: 10px;">
+                        <select id="selectQuantidade" class="form-control" style="width: 100%; padding: 10px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
                             ${options.join('')}
                         </select>
                     </div>
                     <div class="modal-actions">
-                        <button class="secondary" id="cancelQtdBtn">CANCELAR</button>
-                        <button class="success" id="confirmQtdBtn">CONFIRMAR</button>
+                        <button class="secondary" id="cancelQtdBtn">Cancelar</button>
+                        <button class="success" id="confirmQtdBtn">Confirmar</button>
                     </div>
                 </div>
             </div>
@@ -497,15 +473,14 @@ function showFormModal(editingId = null) {
         conta = contas.find(c => String(c.id) === idStr);
         
         if (!conta) {
-            showMessage('CONTA NÃO ENCONTRADA!', 'error');
+            showMessage('Conta não encontrada!', 'error');
             return;
         }
     }
 
-    // Gerar opções de parcelas
     const parcelasOptions = ['PARCELA_UNICA', '1_PARCELA', '2_PARCELA', '3_PARCELA', '4_PARCELA', '5_PARCELA', '6_PARCELA', '7_PARCELA', '8_PARCELA', '9_PARCELA', '10_PARCELA', '11_PARCELA', '12_PARCELA'];
     const parcelasHTML = parcelasOptions.map(p => {
-        const label = p === 'PARCELA_UNICA' ? 'PARCELA ÚNICA' : p.replace('_', 'ª ');
+        const label = p === 'PARCELA_UNICA' ? 'Parcela Única' : p.replace('_PARCELA', 'ª Parcela');
         const selected = conta?.frequencia === p ? 'selected' : '';
         return `<option value="${p}" ${selected}>${label}</option>`;
     }).join('');
@@ -514,13 +489,13 @@ function showFormModal(editingId = null) {
         <div class="modal-overlay" id="formModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">${isEditing ? 'EDITAR CONTA' : 'NOVA CONTA'}</h3>
+                    <h3 class="modal-title">${isEditing ? 'Editar Conta' : 'Nova Conta'}</h3>
                 </div>
                 
                 <div class="tabs-container">
                     <div class="tabs-nav">
-                        <button class="tab-btn active" onclick="switchFormTab(0)">DADOS DA CONTA</button>
-                        <button class="tab-btn" onclick="switchFormTab(1)">PAGAMENTO</button>
+                        <button class="tab-btn active" onclick="switchFormTab(0)">Dados da Conta</button>
+                        <button class="tab-btn" onclick="switchFormTab(1)">Pagamento</button>
                     </div>
 
                     <form id="contaForm" onsubmit="handleSubmit(event)">
@@ -529,21 +504,21 @@ function showFormModal(editingId = null) {
                         <div class="tab-content active" id="tab-conta">
                             <div class="form-grid">
                                 <div class="form-group" style="grid-column: 1 / -1;">
-                                    <label for="descricao">DESCRIÇÃO *</label>
+                                    <label for="descricao">Descrição *</label>
                                     <input type="text" id="descricao" value="${conta?.descricao || ''}" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="valor">VALOR (R$) *</label>
+                                    <label for="valor">Valor (R$) *</label>
                                     <input type="number" id="valor" step="0.01" min="0" value="${conta?.valor || ''}" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="data_vencimento">DATA DE VENCIMENTO *</label>
+                                    <label for="data_vencimento">Data de Vencimento *</label>
                                     <input type="date" id="data_vencimento" value="${conta?.data_vencimento || ''}" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="frequencia">PARCELAS *</label>
+                                    <label for="frequencia">Parcelas *</label>
                                     <select id="frequencia" required>
-                                        <option value="">SELECIONE...</option>
+                                        <option value="">Selecione...</option>
                                         ${parcelasHTML}
                                     </select>
                                 </div>
@@ -553,39 +528,39 @@ function showFormModal(editingId = null) {
                         <div class="tab-content" id="tab-pagamento">
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label for="forma_pagamento">FORMA DE PAGAMENTO *</label>
+                                    <label for="forma_pagamento">Forma de Pagamento *</label>
                                     <select id="forma_pagamento" required>
-                                        <option value="">SELECIONE...</option>
+                                        <option value="">Selecione...</option>
                                         <option value="PIX" ${conta?.forma_pagamento === 'PIX' ? 'selected' : ''}>PIX</option>
-                                        <option value="BOLETO" ${conta?.forma_pagamento === 'BOLETO' ? 'selected' : ''}>BOLETO</option>
-                                        <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>TRANSFERÊNCIA</option>
-                                        <option value="DEBITO" ${conta?.forma_pagamento === 'DEBITO' ? 'selected' : ''}>DÉBITO AUTOMÁTICO</option>
-                                        <option value="CARTAO" ${conta?.forma_pagamento === 'CARTAO' ? 'selected' : ''}>CARTÃO</option>
-                                        <option value="DINHEIRO" ${conta?.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>DINHEIRO</option>
+                                        <option value="BOLETO" ${conta?.forma_pagamento === 'BOLETO' ? 'selected' : ''}>Boleto</option>
+                                        <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>Transferência</option>
+                                        <option value="DEBITO" ${conta?.forma_pagamento === 'DEBITO' ? 'selected' : ''}>Débito Automático</option>
+                                        <option value="CARTAO" ${conta?.forma_pagamento === 'CARTAO' ? 'selected' : ''}>Cartão</option>
+                                        <option value="DINHEIRO" ${conta?.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>Dinheiro</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="banco">BANCO *</label>
+                                    <label for="banco">Banco *</label>
                                     <select id="banco" required>
-                                        <option value="">SELECIONE...</option>
-                                        <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>BANCO DO BRASIL</option>
-                                        <option value="CAIXA" ${conta?.banco === 'CAIXA' ? 'selected' : ''}>CAIXA ECONÔMICA</option>
-                                        <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>BRADESCO</option>
-                                        <option value="ITAU" ${conta?.banco === 'ITAU' ? 'selected' : ''}>ITAÚ</option>
-                                        <option value="SANTANDER" ${conta?.banco === 'SANTANDER' ? 'selected' : ''}>SANTANDER</option>
-                                        <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>SICOOB</option>
+                                        <option value="">Selecione...</option>
+                                        <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>Banco do Brasil</option>
+                                        <option value="CAIXA" ${conta?.banco === 'CAIXA' ? 'selected' : ''}>Caixa Econômica</option>
+                                        <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>Bradesco</option>
+                                        <option value="ITAU" ${conta?.banco === 'ITAU' ? 'selected' : ''}>Itaú</option>
+                                        <option value="SANTANDER" ${conta?.banco === 'SANTANDER' ? 'selected' : ''}>Santander</option>
+                                        <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>Sicoob</option>
                                     </select>
                                 </div>
                                 <div class="form-group" style="grid-column: 1 / -1;">
-                                    <label for="observacoes">OBSERVAÇÕES</label>
-                                    <input type="text" id="observacoes" value="${conta?.observacoes || ''}" placeholder="EX: NOTA RECEBIDA, PENDENTE...">
+                                    <label for="observacoes">Observações</label>
+                                    <input type="text" id="observacoes" value="${conta?.observacoes || ''}" placeholder="Ex: Nota recebida, pendente...">
                                 </div>
                             </div>
                         </div>
 
                         <div class="modal-actions">
-                            <button type="submit" class="save">${isEditing ? 'ATUALIZAR' : 'SALVAR'}</button>
-                            <button type="button" class="secondary" onclick="closeFormModal()">CANCELAR</button>
+                            <button type="submit" class="save">${isEditing ? 'Atualizar' : 'Salvar'}</button>
+                            <button type="button" class="secondary" onclick="closeFormModal(true)">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -594,17 +569,19 @@ function showFormModal(editingId = null) {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Forçar maiúsculas nos campos de texto
-    forceUpperCase(document.getElementById('descricao'));
-    forceUpperCase(document.getElementById('observacoes'));
-    
     setTimeout(() => document.getElementById('descricao')?.focus(), 100);
 }
 
-function closeFormModal() {
+function closeFormModal(showCancelMessage = false) {
     const modal = document.getElementById('formModal');
     if (modal) {
+        const editId = document.getElementById('editId')?.value;
+        const isEditing = editId && editId !== '';
+        
+        if (showCancelMessage) {
+            showMessage(isEditing ? 'Atualização cancelada' : 'Registro cancelado', 'error');
+        }
+        
         modal.style.animation = 'fadeOut 0.2s ease forwards';
         setTimeout(() => modal.remove(), 200);
     }
@@ -633,13 +610,13 @@ async function handleSubmit(event) {
     if (event) event.preventDefault();
 
     const formData = {
-        descricao: document.getElementById('descricao').value.trim().toUpperCase(),
+        descricao: document.getElementById('descricao').value.trim(),
         valor: parseFloat(document.getElementById('valor').value),
         data_vencimento: document.getElementById('data_vencimento').value,
         frequencia: document.getElementById('frequencia').value,
         forma_pagamento: document.getElementById('forma_pagamento').value,
         banco: document.getElementById('banco').value,
-        observacoes: document.getElementById('observacoes').value.trim().toUpperCase(),
+        observacoes: document.getElementById('observacoes').value.trim(),
         status: 'PENDENTE',
         data_pagamento: null
     };
@@ -660,7 +637,7 @@ async function handleSubmit(event) {
         if (index !== -1) {
             contas[index] = { ...contas[index], ...formData };
             saveToLocalStorage();
-            showMessage('CONTA ATUALIZADA LOCALMENTE!', 'success');
+            showMessage('Conta atualizada localmente!', 'success');
         }
     } else {
         const novaConta = {
@@ -670,7 +647,7 @@ async function handleSubmit(event) {
         };
         contas.push(novaConta);
         saveToLocalStorage();
-        showMessage('CONTA CRIADA LOCALMENTE!', 'success');
+        showMessage('Conta criada localmente!', 'success');
     }
 
     updateAllFilters();
@@ -696,7 +673,7 @@ async function handleSubmit(event) {
 
             if (response.status === 401) {
                 sessionStorage.removeItem('contasPagarSession');
-                mostrarTelaAcessoNegado('SUA SESSÃO EXPIROU');
+                mostrarTelaAcessoNegado('Sua sessão expirou');
                 return;
             }
 
@@ -712,13 +689,13 @@ async function handleSubmit(event) {
                 }
                 
                 saveToLocalStorage();
-                console.log('SINCRONIZADO COM SERVIDOR');
+                console.log('Sincronizado com servidor');
                 updateAllFilters();
                 updateDashboard();
                 filterContas();
             }
         } catch (error) {
-            console.log('ERRO AO SINCRONIZAR, MAS DADOS SALVOS LOCALMENTE:', error);
+            console.log('Erro ao sincronizar, mas dados salvos localmente:', error);
         }
     }
 }
@@ -733,24 +710,18 @@ window.togglePago = async function(id) {
     if (!conta) return;
 
     if (conta.status === 'PAGO') {
-        // Desmarcar como pago
         conta.status = 'PENDENTE';
         conta.data_pagamento = null;
     } else {
-        // Verificar se tem parcelas (grupo_parcelas)
         if (conta.grupo_parcelas) {
             const opcao = await showParcelasModal(conta);
             
-            if (!opcao) {
-                // Usuário cancelou
-                return;
-            }
+            if (!opcao) return;
 
             const hoje = new Date().toISOString().split('T')[0];
             conta.status = 'PAGO';
             conta.data_pagamento = hoje;
 
-            // Sincronizar com servidor para processar parcelas
             if (isOnline) {
                 try {
                     const response = await fetch(`${API_URL}/contas/${idStr}`, {
@@ -769,17 +740,15 @@ window.togglePago = async function(id) {
                     });
 
                     if (response.ok) {
-                        // Recarregar todas as contas para pegar as mudanças
                         await syncWithServer();
-                        showMessage('PAGAMENTO REGISTRADO!', 'success');
+                        showMessage('Pagamento registrado!', 'success');
                         return;
                     }
                 } catch (error) {
-                    console.log('ERRO AO SINCRONIZAR, MAS SALVO LOCALMENTE:', error);
+                    console.log('Erro ao sincronizar, mas salvo localmente:', error);
                 }
             }
         } else {
-            // Conta única, sem parcelas
             const hoje = new Date().toISOString().split('T')[0];
             conta.status = 'PAGO';
             conta.data_pagamento = hoje;
@@ -816,12 +785,10 @@ window.togglePago = async function(id) {
                 }
             }
         } catch (error) {
-            console.log('ERRO AO SINCRONIZAR STATUS, MAS SALVO LOCALMENTE:', error);
+            console.log('Erro ao sincronizar status, mas salvo localmente:', error);
         }
     }
 };
-
-// Continuará no próximo arquivo com as demais funções...
 
 // ============================================
 // EDIÇÃO
@@ -831,7 +798,7 @@ window.editConta = function(id) {
     const conta = contas.find(c => String(c.id) === idStr);
     
     if (!conta) {
-        showMessage('CONTA NÃO ENCONTRADA!', 'error');
+        showMessage('Conta não encontrada!', 'error');
         return;
     }
     
@@ -843,11 +810,11 @@ window.editConta = function(id) {
 // ============================================
 window.deleteConta = async function(id) {
     const confirmed = await showConfirm(
-        'TEM CERTEZA QUE DESEJA EXCLUIR ESTA CONTA?',
+        'Tem certeza que deseja excluir esta conta?',
         {
-            title: 'EXCLUIR CONTA',
-            confirmText: 'EXCLUIR',
-            cancelText: 'CANCELAR',
+            title: 'Excluir Conta',
+            confirmText: 'Excluir',
+            cancelText: 'Cancelar',
             type: 'warning'
         }
     );
@@ -861,7 +828,7 @@ window.deleteConta = async function(id) {
     updateAllFilters();
     updateDashboard();
     filterContas();
-    showMessage('CONTA EXCLUÍDA LOCALMENTE!', 'success');
+    showMessage('Conta excluída!', 'success');
 
     if (isOnline && !idStr.startsWith('local_')) {
         try {
@@ -875,10 +842,10 @@ window.deleteConta = async function(id) {
             });
 
             if (response.ok) {
-                console.log('CONTA EXCLUÍDA NO SERVIDOR');
+                console.log('Conta excluída no servidor');
             }
         } catch (error) {
-            console.log('ERRO AO EXCLUIR NO SERVIDOR, MAS REMOVIDA LOCALMENTE:', error);
+            console.log('Erro ao excluir no servidor, mas removida localmente:', error);
         }
     }
 };
@@ -891,49 +858,49 @@ window.viewConta = function(id) {
     const conta = contas.find(c => String(c.id) === idStr);
     
     if (!conta) {
-        showMessage('CONTA NÃO ENCONTRADA!', 'error');
+        showMessage('Conta não encontrada!', 'error');
         return;
     }
 
-    const parcelaLabel = conta.frequencia === 'PARCELA_UNICA' ? 'PARCELA ÚNICA' : conta.frequencia.replace('_', 'ª ');
+    const parcelaLabel = conta.frequencia === 'PARCELA_UNICA' ? 'Parcela Única' : conta.frequencia.replace('_PARCELA', 'ª Parcela');
 
     const modalHTML = `
         <div class="modal-overlay" id="viewModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">DETALHES DA CONTA</h3>
+                    <h3 class="modal-title">Detalhes da Conta</h3>
                 </div>
                 
                 <div class="tabs-container">
                     <div class="tabs-nav">
-                        <button class="tab-btn active" onclick="switchViewTab(0)">DADOS DA CONTA</button>
-                        <button class="tab-btn" onclick="switchViewTab(1)">PAGAMENTO</button>
+                        <button class="tab-btn active" onclick="switchViewTab(0)">Dados da Conta</button>
+                        <button class="tab-btn" onclick="switchViewTab(1)">Pagamento</button>
                     </div>
 
                     <div class="tab-content active" id="view-tab-conta">
                         <div class="info-section">
-                            <h4>INFORMAÇÕES DA CONTA</h4>
-                            <p><strong>DESCRIÇÃO:</strong> ${conta.descricao}</p>
-                            <p><strong>VALOR:</strong> R$ ${parseFloat(conta.valor).toFixed(2)}</p>
-                            <p><strong>DATA VENCIMENTO:</strong> ${formatDate(conta.data_vencimento)}</p>
-                            <p><strong>PARCELA:</strong> ${parcelaLabel}</p>
-                            ${conta.observacoes ? `<p><strong>OBSERVAÇÕES:</strong> ${conta.observacoes}</p>` : ''}
-                            <p><strong>STATUS:</strong> ${getStatusBadge(conta.status)}</p>
+                            <h4>Informações da Conta</h4>
+                            <p><strong>Descrição:</strong> ${conta.descricao}</p>
+                            <p><strong>Valor:</strong> R$ ${parseFloat(conta.valor).toFixed(2)}</p>
+                            <p><strong>Data Vencimento:</strong> ${formatDate(conta.data_vencimento)}</p>
+                            <p><strong>Parcela:</strong> ${parcelaLabel}</p>
+                            ${conta.observacoes ? `<p><strong>Observações:</strong> ${conta.observacoes}</p>` : ''}
+                            <p><strong>Status:</strong> ${getStatusBadge(conta.status)}</p>
                         </div>
                     </div>
 
                     <div class="tab-content" id="view-tab-pagamento">
                         <div class="info-section">
-                            <h4>INFORMAÇÕES DE PAGAMENTO</h4>
-                            <p><strong>FORMA DE PAGAMENTO:</strong> ${conta.forma_pagamento}</p>
-                            <p><strong>BANCO:</strong> ${conta.banco}</p>
-                            ${conta.data_pagamento ? `<p><strong>DATA DO PAGAMENTO:</strong> ${formatDate(conta.data_pagamento)}</p>` : '<p><em>AINDA NÃO PAGO</em></p>'}
+                            <h4>Informações de Pagamento</h4>
+                            <p><strong>Forma de Pagamento:</strong> ${conta.forma_pagamento}</p>
+                            <p><strong>Banco:</strong> ${conta.banco}</p>
+                            ${conta.data_pagamento ? `<p><strong>Data do Pagamento:</strong> ${formatDate(conta.data_pagamento)}</p>` : '<p><em>Ainda não pago</em></p>'}
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-actions">
-                    <button class="secondary" onclick="closeViewModal()">FECHAR</button>
+                    <button class="secondary" onclick="closeViewModal()">Fechar</button>
                 </div>
             </div>
         </div>
@@ -961,333 +928,6 @@ window.switchViewTab = function(index) {
 };
 
 // ============================================
-// GERAÇÃO DE PDF - CONTAS PAGAS
-// ============================================
-window.generatePDFPagas = async function() {
-    try {
-        if (typeof window.jspdf === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-            document.head.appendChild(script);
-            
-            await new Promise((resolve, reject) => {
-                script.onload = resolve;
-                script.onerror = reject;
-            });
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        const contasDoMes = contas.filter(c => {
-            const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
-            return dataVenc.getMonth() === currentMonth && dataVenc.getFullYear() === currentYear;
-        });
-
-        const contasPagas = contasDoMes.filter(c => c.status === 'PAGO');
-
-        if (contasPagas.length === 0) {
-            showMessage('NÃO HÁ CONTAS PAGAS NESTE MÊS!', 'error');
-            return;
-        }
-
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15;
-        let yPos = 20;
-
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RELATÓRIO DE CONTAS A PAGAR', pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 8;
-        doc.setFontSize(12);
-        doc.text('CONTAS PAGAS', pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 7;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`MÊS: ${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 5;
-        doc.text(`GERADO EM: ${new Date().toLocaleString('pt-BR')}`, pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 10;
-        doc.setLineWidth(0.5);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 10;
-
-        contasPagas.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
-
-        doc.setFontSize(8);
-        const colWidths = [50, 24, 24, 28, 28, 26];
-        const startX = margin;
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFillColor(74, 74, 74);
-        doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5], 8, 'F');
-        doc.setTextColor(255, 255, 255);
-        
-        let xPos = startX + 2;
-        doc.text('DESCRICAO', xPos, yPos + 5);
-        xPos += colWidths[0];
-        doc.text('VENCIMENTO', xPos, yPos + 5);
-        xPos += colWidths[1];
-        doc.text('PAGAMENTO', xPos, yPos + 5);
-        xPos += colWidths[2];
-        doc.text('FORMA PGTO', xPos, yPos + 5);
-        xPos += colWidths[3];
-        doc.text('BANCO', xPos, yPos + 5);
-        xPos += colWidths[4];
-        doc.text('VALOR (R$)', xPos, yPos + 5);
-        
-        yPos += 8;
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'normal');
-
-        let totalPago = 0;
-        contasPagas.forEach((conta, index) => {
-            if (yPos > 270) {
-                doc.addPage();
-                yPos = 20;
-            }
-
-            const bgColor = index % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
-            
-            const maxCharsPerLine = 22;
-            const descricaoCompleta = conta.descricao;
-            const descricaoLines = [];
-            
-            if (descricaoCompleta.length > maxCharsPerLine) {
-                for (let i = 0; i < descricaoCompleta.length; i += maxCharsPerLine) {
-                    descricaoLines.push(descricaoCompleta.substring(i, i + maxCharsPerLine));
-                }
-            } else {
-                descricaoLines.push(descricaoCompleta);
-            }
-            
-            const linesToShow = descricaoLines.slice(0, 2);
-            const rowHeight = linesToShow.length > 1 ? 12 : 8;
-
-            doc.setFillColor(...bgColor);
-            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5], rowHeight, 'F');
-
-            xPos = startX + 2;
-            
-            linesToShow.forEach((linha, idx) => {
-                doc.text(linha, xPos, yPos + 5 + (idx * 4));
-            });
-            
-            xPos += colWidths[0];
-            doc.text(formatDate(conta.data_vencimento), xPos, yPos + 5);
-            
-            xPos += colWidths[1];
-            doc.text(conta.data_pagamento ? formatDate(conta.data_pagamento) : '-', xPos, yPos + 5);
-            
-            xPos += colWidths[2];
-            const formaPgto = conta.forma_pagamento.substring(0, 10);
-            doc.text(formaPgto, xPos, yPos + 5);
-            
-            xPos += colWidths[3];
-            const banco = conta.banco.substring(0, 11);
-            doc.text(banco, xPos, yPos + 5);
-            
-            xPos += colWidths[4];
-            doc.text(`R$ ${parseFloat(conta.valor).toFixed(2)}`, xPos, yPos + 5);
-
-            totalPago += parseFloat(conta.valor);
-            yPos += rowHeight;
-        });
-
-        yPos += 5;
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(204, 112, 0);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 8;
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('VALOR TOTAL:', startX, yPos);
-        doc.text(`R$ ${totalPago.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, pageWidth - margin - 30, yPos);
-
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'italic');
-        const footer = 'ESTE DOCUMENTO FOI GERADO AUTOMATICAMENTE PELO SISTEMA DE CONTAS A PAGAR';
-        doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-
-        const fileName = `contas_pagas_${meses[currentMonth]}_${currentYear}.pdf`;
-        doc.save(fileName);
-        
-        showMessage('PDF DE CONTAS PAGAS GERADO!', 'success');
-    } catch (error) {
-        console.error('ERRO AO GERAR PDF:', error);
-        showMessage('ERRO AO GERAR PDF', 'error');
-    }
-};
-
-// ============================================
-// GERAÇÃO DE PDF - CONTAS NÃO PAGAS
-// ============================================
-window.generatePDFNaoPagas = async function() {
-    try {
-        if (typeof window.jspdf === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-            document.head.appendChild(script);
-            
-            await new Promise((resolve, reject) => {
-                script.onload = resolve;
-                script.onerror = reject;
-            });
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        const contasDoMes = contas.filter(c => {
-            const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
-            return dataVenc.getMonth() === currentMonth && dataVenc.getFullYear() === currentYear;
-        });
-
-        const contasNaoPagas = contasDoMes.filter(c => c.status !== 'PAGO');
-
-        if (contasNaoPagas.length === 0) {
-            showMessage('NÃO HÁ CONTAS PENDENTES NESTE MÊS!', 'success');
-            return;
-        }
-
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15;
-        let yPos = 20;
-
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RELATÓRIO DE CONTAS A PAGAR', pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 8;
-        doc.setFontSize(12);
-        doc.text('CONTAS NÃO PAGAS', pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 7;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`MÊS: ${meses[currentMonth]} ${currentYear}`, pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 5;
-        doc.text(`GERADO EM: ${new Date().toLocaleString('pt-BR')}`, pageWidth / 2, yPos, { align: 'center' });
-        
-        yPos += 10;
-        doc.setLineWidth(0.5);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 10;
-
-        contasNaoPagas.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
-
-        doc.setFontSize(8);
-        const colWidths = [60, 26, 32, 32, 30];
-        const startX = margin;
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFillColor(74, 74, 74);
-        doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], 8, 'F');
-        doc.setTextColor(255, 255, 255);
-        
-        let xPos = startX + 2;
-        doc.text('DESCRICAO', xPos, yPos + 5);
-        xPos += colWidths[0];
-        doc.text('VENCIMENTO', xPos, yPos + 5);
-        xPos += colWidths[1];
-        doc.text('FORMA PGTO', xPos, yPos + 5);
-        xPos += colWidths[2];
-        doc.text('BANCO', xPos, yPos + 5);
-        xPos += colWidths[3];
-        doc.text('VALOR (R$)', xPos, yPos + 5);
-        
-        yPos += 8;
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'normal');
-
-        let totalPendente = 0;
-        contasNaoPagas.forEach((conta, index) => {
-            if (yPos > 270) {
-                doc.addPage();
-                yPos = 20;
-            }
-
-            const bgColor = index % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
-            
-            const maxCharsPerLine = 27;
-            const descricaoCompleta = conta.descricao;
-            const descricaoLines = [];
-            
-            if (descricaoCompleta.length > maxCharsPerLine) {
-                for (let i = 0; i < descricaoCompleta.length; i += maxCharsPerLine) {
-                    descricaoLines.push(descricaoCompleta.substring(i, i + maxCharsPerLine));
-                }
-            } else {
-                descricaoLines.push(descricaoCompleta);
-            }
-            
-            const linesToShow = descricaoLines.slice(0, 2);
-            const rowHeight = linesToShow.length > 1 ? 12 : 8;
-
-            doc.setFillColor(...bgColor);
-            doc.rect(startX, yPos, colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], rowHeight, 'F');
-
-            xPos = startX + 2;
-            
-            linesToShow.forEach((linha, idx) => {
-                doc.text(linha, xPos, yPos + 5 + (idx * 4));
-            });
-            
-            xPos += colWidths[0];
-            doc.text(formatDate(conta.data_vencimento), xPos, yPos + 5);
-            
-            xPos += colWidths[1];
-            const formaPgto = conta.forma_pagamento.substring(0, 12);
-            doc.text(formaPgto, xPos, yPos + 5);
-            
-            xPos += colWidths[2];
-            const banco = conta.banco.substring(0, 13);
-            doc.text(banco, xPos, yPos + 5);
-            
-            xPos += colWidths[3];
-            doc.text(`R$ ${parseFloat(conta.valor).toFixed(2)}`, xPos, yPos + 5);
-
-            totalPendente += parseFloat(conta.valor);
-            yPos += rowHeight;
-        });
-
-        yPos += 5;
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(204, 112, 0);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 8;
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('VALOR TOTAL:', startX, yPos);
-        doc.text(`R$ ${totalPendente.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, pageWidth - margin - 30, yPos);
-
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'italic');
-        const footer = 'ESTE DOCUMENTO FOI GERADO AUTOMATICAMENTE PELO SISTEMA DE CONTAS A PAGAR';
-        doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-
-        const fileName = `contas_nao_pagas_${meses[currentMonth]}_${currentYear}.pdf`;
-        doc.save(fileName);
-        
-        showMessage('PDF DE CONTAS NÃO PAGAS GERADO!', 'success');
-    } catch (error) {
-        console.error('ERRO AO GERAR PDF:', error);
-        showMessage('ERRO AO GERAR PDF', 'error');
-    }
-};
-
-// ============================================
 // FILTROS
 // ============================================
 function updateAllFilters() {
@@ -1311,7 +951,7 @@ function updateBancosFilter() {
     const select = document.getElementById('filterBanco');
     if (select) {
         const currentValue = select.value;
-        select.innerHTML = '<option value="">TODOS</option>';
+        select.innerHTML = '<option value="">Todos</option>';
         Array.from(bancos).sort().forEach(b => {
             const option = document.createElement('option');
             option.value = b;
@@ -1357,26 +997,26 @@ function updateStatusFilter() {
     const select = document.getElementById('filterStatus');
     if (select) {
         const currentValue = select.value;
-        select.innerHTML = '<option value="">TODOS</option>';
+        select.innerHTML = '<option value="">Todos</option>';
         
         if (statusSet.has('PAGO')) {
             const opt = document.createElement('option');
             opt.value = 'PAGO';
-            opt.textContent = 'PAGO';
+            opt.textContent = 'Pago';
             select.appendChild(opt);
         }
         
         if (temVencido) {
             const opt = document.createElement('option');
             opt.value = 'VENCIDO';
-            opt.textContent = 'VENCIDO';
+            opt.textContent = 'Vencido';
             select.appendChild(opt);
         }
         
         if (temIminente) {
             const opt = document.createElement('option');
             opt.value = 'IMINENTE';
-            opt.textContent = 'IMINENTE';
+            opt.textContent = 'Iminente';
             select.appendChild(opt);
         }
         
@@ -1452,7 +1092,7 @@ function renderContas(contasToRender) {
     if (!container) return;
     
     if (!contasToRender || contasToRender.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">NENHUMA CONTA ENCONTRADA</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Nenhuma conta encontrada</div>';
         return;
     }
 
@@ -1464,21 +1104,21 @@ function renderContas(contasToRender) {
                         <th style="width: 40px; text-align: center;">
                             <span style="font-size: 1.1rem;">✓</span>
                         </th>
-                        <th>DESCRIÇÃO</th>
-                        <th>VALOR</th>
-                        <th>VENCIMENTO</th>
-                        <th>BANCO</th>
-                        <th>PARCELA</th>
-                        <th>STATUS</th>
-                        <th>DATA PAGAMENTO</th>
-                        <th style="text-align: center;">AÇÕES</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Vencimento</th>
+                        <th>Banco</th>
+                        <th>Parcela</th>
+                        <th>Status</th>
+                        <th>Data Pagamento</th>
+                        <th style="text-align: center;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${contasToRender.map(c => {
                         const isPago = c.status === 'PAGO';
                         const dataPgto = c.data_pagamento ? formatDate(c.data_pagamento) : '-';
-                        const parcelaLabel = c.frequencia === 'PARCELA_UNICA' ? 'ÚNICA' : c.frequencia.replace('_PARCELA', '');
+                        const parcelaLabel = c.frequencia === 'PARCELA_UNICA' ? 'Única' : c.frequencia.replace('_PARCELA', '');
                         
                         return `
                         <tr class="${isPago ? 'row-pago' : ''}">
@@ -1502,9 +1142,9 @@ function renderContas(contasToRender) {
                             <td>${getStatusBadge(getStatusDinamico(c))}</td>
                             <td style="white-space: nowrap;"><strong>${dataPgto}</strong></td>
                             <td class="actions-cell" style="text-align: center; white-space: nowrap;">
-                                <button onclick="viewConta('${c.id}')" class="action-btn view" title="VER DETALHES">VER</button>
-                                <button onclick="editConta('${c.id}')" class="action-btn edit" title="EDITAR">EDITAR</button>
-                                <button onclick="deleteConta('${c.id}')" class="action-btn delete" title="EXCLUIR">EXCLUIR</button>
+                                <button onclick="viewConta('${c.id}')" class="action-btn view" title="Ver detalhes">Ver</button>
+                                <button onclick="editConta('${c.id}')" class="action-btn edit" title="Editar">Editar</button>
+                                <button onclick="deleteConta('${c.id}')" class="action-btn delete" title="Excluir">Excluir</button>
                             </td>
                         </tr>
                     `}).join('')}
@@ -1551,16 +1191,19 @@ function getStatusDinamico(conta) {
 
 function getStatusBadge(status) {
     const statusMap = {
-        'PAGO': { class: 'entregue', text: 'PAGO' },
-        'VENCIDO': { class: 'devolvido', text: 'VENCIDO' },
-        'IMINENTE': { class: 'rota', text: 'IMINENTE' },
-        'PENDENTE': { class: 'transito', text: 'PENDENTE' }
+        'PAGO': { class: 'entregue', text: 'Pago' },
+        'VENCIDO': { class: 'devolvido', text: 'Vencido' },
+        'IMINENTE': { class: 'rota', text: 'Iminente' },
+        'PENDENTE': { class: 'transito', text: 'Pendente' }
     };
     
     const s = statusMap[status] || { class: 'transito', text: status };
     return `<span class="badge ${s.class}">${s.text}</span>`;
 }
 
+// ============================================
+// MENSAGENS (IGUAL CONTROLE FRETE)
+// ============================================
 function showMessage(message, type) {
     const oldMessages = document.querySelectorAll('.floating-message');
     oldMessages.forEach(msg => msg.remove());
