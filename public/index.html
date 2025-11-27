@@ -14,8 +14,9 @@
     </div>
 
     <!-- Conteúdo Principal -->
-    <div class="app-content">
+    <div class="app-content" id="appContent">
         <div class="container">
+            <!-- HEADER -->
             <div class="header">
                 <h1>Contas a Pagar</h1>
                 <div id="connectionStatus" class="connection-status offline">
@@ -23,35 +24,39 @@
                 </div>
             </div>
 
+            <!-- BOTÃO REGISTRAR -->
             <div class="button-wrapper">
-                <button onclick="toggleForm()" class="register">Registrar Conta</button>
+                <button onclick="toggleForm()" class="btn-register">Registrar Conta</button>
             </div>
 
             <!-- NAVEGAÇÃO POR MESES -->
             <div class="card">
                 <div class="month-navigation">
-                    <button onclick="previousMonth()" class="month-nav-btn">← Anterior</button>
+                    <button onclick="previousMonth()" class="month-nav-btn">Anterior</button>
                     <h3 id="currentMonthDisplay" class="month-display">Carregando...</h3>
-                    <button onclick="nextMonth()" class="month-nav-btn">Próximo →</button>
+                    <button onclick="nextMonth()" class="month-nav-btn">Próximo</button>
                 </div>
             </div>
 
-            <!-- Dashboard -->
+            <!-- DASHBOARD COM CARDS -->
             <div class="dashboard-grid">
                 <div class="stat-card">
                     <div class="stat-label">Pagos</div>
                     <div class="stat-value stat-success" id="statPagos">0</div>
                 </div>
+                
                 <div class="stat-card stat-card-alert" id="cardAtraso">
                     <div class="stat-label">Vencido</div>
                     <div class="stat-value stat-danger" id="statAtraso">0</div>
-                    <div class="pulse-badge" id="pulseBadgeAtraso" style="display: none;">!</div>
+                    <div class="pulse-badge" id="pulseBadgeAtraso" style="display: none;">0</div>
                 </div>
+                
                 <div class="stat-card stat-card-warning" id="cardIminente">
                     <div class="stat-label">Vence em 15 Dias</div>
                     <div class="stat-value stat-warning" id="statIminente">0</div>
-                    <div class="pulse-badge" id="pulseBadgeIminente" style="display: none;">!</div>
+                    <div class="pulse-badge-warning" id="pulseBadgeIminente" style="display: none;">0</div>
                 </div>
+                
                 <div class="stat-card">
                     <div class="stat-label">Valor Total</div>
                     <div class="stat-value stat-success" id="statValorTotal">R$ 0,00</div>
@@ -102,7 +107,11 @@
             <!-- LISTA DE CONTAS -->
             <div class="card">
                 <h2>Lista de Contas</h2>
-                <div id="contasContainer"></div>
+                <div id="contasContainer">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                        Nenhuma conta encontrada
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -110,7 +119,9 @@
     <script>
         setTimeout(() => {
             const splash = document.getElementById('splashScreen');
+            const appContent = document.getElementById('appContent');
             if (splash) splash.style.display = 'none';
+            if (appContent) appContent.style.display = 'block';
         }, 3000);
     </script>
     <script src="contas-script.js"></script>
