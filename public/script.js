@@ -638,22 +638,32 @@ function updateAllFilters() {
         select.value = val;
     }
     
+    // Analisar contas do mês atual para determinar status
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    let temVencido = false, temIminente = false, temPago = false;
+    const quinze = new Date(hoje);
+    quinze.setDate(quinze.getDate() + 15);
     
-    contas.forEach(c => {
+    const contasDoMes = contas.filter(c => {
+        const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
+        return dataVenc.getMonth() === currentMonth && dataVenc.getFullYear() === currentYear;
+    });
+    
+    let temVencido = false, temIminente = false, temPago = false, temPendente = false;
+    
+    contasDoMes.forEach(c => {
         if (c.status === 'PAGO') {
             temPago = true;
         } else {
             const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
             dataVenc.setHours(0, 0, 0, 0);
+            
             if (dataVenc < hoje) {
                 temVencido = true;
+            } else if (dataVenc <= quinze) {
+                temIminente = true;
             } else {
-                const quinze = new Date(hoje);
-                quinze.setDate(quinze.getDate() + 15);
-                if (dataVenc <= quinze) temIminente = true;
+                temPendente = true;
             }
         }
     });
@@ -665,6 +675,7 @@ function updateAllFilters() {
         if (temPago) statusSelect.innerHTML += '<option value="PAGO">Pago</option>';
         if (temVencido) statusSelect.innerHTML += '<option value="VENCIDO">Vencido</option>';
         if (temIminente) statusSelect.innerHTML += '<option value="IMINENTE">Iminente</option>';
+        if (temPendente) statusSelect.innerHTML += '<option value="PENDENTE">Pendente</option>';
         statusSelect.value = val;
     }
 }
@@ -675,14 +686,17 @@ function filterContas() {
     const status = document.getElementById('filterStatus')?.value || '';
     const pagamento = document.getElementById('filterPagamento')?.value || '';
     
+    // Filtrar apenas por mês/ano da data de vencimento
     let filtered = contas.filter(c => {
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         return dataVenc.getMonth() === currentMonth && dataVenc.getFullYear() === currentYear;
     });
 
+    // Aplicar filtros adicionais
     if (banco) filtered = filtered.filter(c => c.banco === banco);
     if (pagamento) filtered = filtered.filter(c => c.forma_pagamento === pagamento);
     
+    // Filtro de status - calcular dinamicamente
     if (status) {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
@@ -691,22 +705,33 @@ function filterContas() {
         
         filtered = filtered.filter(c => {
             if (status === 'PAGO') return c.status === 'PAGO';
+            
             if (status === 'VENCIDO') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
                 return dataVenc < hoje;
             }
+            
             if (status === 'IMINENTE') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
                 return dataVenc >= hoje && dataVenc <= quinze;
             }
+            
+            if (status === 'PENDENTE') {
+                if (c.status === 'PAGO') return false;
+                const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
+                dataVenc.setHours(0, 0, 0, 0);
+                return dataVenc > quinze;
+            }
+            
             return true;
         });
     }
 
+    // Filtro de busca
     if (search) {
         filtered = filtered.filter(c => 
             (c.descricao || '').toLowerCase().includes(search) ||
@@ -715,6 +740,7 @@ function filterContas() {
         );
     }
 
+    // Ordenar por data de vencimento
     filtered.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
     renderContas(filtered);
 }
