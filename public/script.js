@@ -1,96 +1,195 @@
+// ============================================
 // CONFIGURAÇÃO
+// ============================================
 const PORTAL_URL = 'https://ir-comercio-portal-zcan.onrender.com';
-const API_URL = '/api';
+const API_URL = 'https://contas-pagar-7pir.onrender.com/api';
+
 let contas = [];
 let isOnline = false;
+let lastDataHash = '';
 let sessionToken = null;
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-// INICIALIZAÇÃO
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        const splash = document.getElementById('splashScreen');
-        const app = document.querySelector('.app-content');
-        if (splash) splash.style.display = 'none';
-        if (app) { app.style.display = 'block'; app.style.opacity = '1'; }
-    }, 1000);
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    sessionToken = urlParams.get('sessionToken') || sessionStorage.getItem('contasPagarSession') || localStorage.getItem('contasPagarSession');
-    if (!sessionToken) { window.location.href = PORTAL_URL; return; }
-    sessionStorage.setItem('contasPagarSession', sessionToken);
-    localStorage.setItem('contasPagarSession', sessionToken);
-    updateMonthDisplay();
-    checkServerStatus();
-    setInterval(checkServerStatus, 15000);
-    loadContas();
-    setInterval(loadContas, 10000);
+const meses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+console.log('🚀 Contas a Pagar iniciada');
+
+document.addEventListener('DOMContentLoaded', () => {
+    verificarAutenticacao();
 });
 
-// NAVEGAÇÃO DE MESES
+// ============================================
+// NAVEGAÇÃO POR MESES
+// ============================================
 function updateMonthDisplay() {
     const display = document.getElementById('currentMonthDisplay');
-    if (display) display.textContent = `${meses[currentMonth]} ${currentYear}`;
+    if (display) {
+        display.textContent = `${meses[currentMonth]} ${currentYear}`;
+    }
     updateDashboard();
     filterContas();
 }
 
 window.previousMonth = function() {
     currentMonth--;
-    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
     updateMonthDisplay();
 };
 
 window.nextMonth = function() {
     currentMonth++;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
     updateMonthDisplay();
 };
 
-// CONEXÃO
+// ============================================
+// AUTENTICAÇÃO
+// ============================================
+function verificarAutenticacao() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('sessionToken');
+
+    if (tokenFromUrl) {
+        sessionToken = tokenFromUrl;
+        sessionStorage.setItem('contasPagarSession', tokenFromUrl);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+        sessionToken = sessionStorage.getItem('contasPagarSession');
+    }
+
+    if (!sessionToken) {
+        mostrarTelaAcessoNegado();
+        return;
+    }
+
+    inicializarApp();
+}
+
+function mostrarTelaAcessoNegado(mensagem = 'NÃO AUTORIZADO') {
+    document.body.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--bg-primary); color: var(--text-primary); text-align: center; padding: 2rem;">
+            <h1 style="font-size: 2.2rem; margin-bottom: 1rem;">${mensagem}</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Somente usuários autenticados podem acessar esta área.</p>
+            <a href="${PORTAL_URL}" style="display: inline-block; background: var(--btn-register); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ir para o Portal</a>
+        </div>
+    `;
+}
+
+function inicializarApp() {
+    updateMonthDisplay();
+    checkServerStatus();
+    setInterval(checkServerStatus, 15000);
+    startPolling();
+}
+
+// ============================================
+// CONEXÃO E STATUS
+// ============================================
 async function checkServerStatus() {
     try {
         const response = await fetch(`${API_URL}/contas`, {
             method: 'GET',
-            headers: { 'X-Session-Token': sessionToken }
+            headers: { 
+                'X-Session-Token': sessionToken,
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
         });
-        if (response.status === 401) { window.location.href = PORTAL_URL; return; }
+
+        if (response.status === 401) {
+            sessionStorage.removeItem('contasPagarSession');
+            mostrarTelaAcessoNegado('Sua sessão expirou');
+            return false;
+        }
+
+        const wasOffline = !isOnline;
         isOnline = response.ok;
+        
+        if (wasOffline && isOnline) {
+            console.log('✅ SERVIDOR ONLINE');
+            await loadContas();
+        }
+        
         updateConnectionStatus();
+        return isOnline;
     } catch (error) {
         isOnline = false;
         updateConnectionStatus();
+        return false;
     }
 }
 
 function updateConnectionStatus() {
-    const elem = document.getElementById('connectionStatus');
-    if (elem) elem.className = isOnline ? 'connection-status online' : 'connection-status offline';
+    const statusElement = document.getElementById('connectionStatus');
+    const statusText = document.getElementById('statusText');
+    if (statusElement) {
+        statusElement.className = isOnline ? 'connection-status online' : 'connection-status offline';
+        if (statusText) {
+            statusText.textContent = isOnline ? 'Online' : 'Offline';
+        }
+    }
 }
 
-// CARREGAR DADOS
+// ============================================
+// CARREGAMENTO DE DADOS
+// ============================================
 async function loadContas() {
-    if (!sessionToken) return;
+    if (!isOnline) return;
+
     try {
         const response = await fetch(`${API_URL}/contas`, {
             method: 'GET',
-            headers: { 'X-Session-Token': sessionToken }
+            headers: { 
+                'X-Session-Token': sessionToken,
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
         });
-        if (response.status === 401) { window.location.href = PORTAL_URL; return; }
+
+        if (response.status === 401) {
+            sessionStorage.removeItem('contasPagarSession');
+            mostrarTelaAcessoNegado('Sua sessão expirou');
+            return;
+        }
+
         if (!response.ok) return;
+
         const data = await response.json();
-        if (Array.isArray(data)) {
-            contas = data;
+        contas = data;
+        
+        const newHash = JSON.stringify(contas.map(c => c.id));
+        if (newHash !== lastDataHash) {
+            lastDataHash = newHash;
+            console.log(`${contas.length} contas carregadas`);
             updateAllFilters();
             updateDashboard();
             filterContas();
         }
-    } catch (error) {}
+    } catch (error) {
+        console.error('Erro ao carregar:', error);
+    }
 }
 
+function startPolling() {
+    loadContas();
+    setInterval(() => {
+        if (isOnline) loadContas();
+    }, 10000);
+}
+
+// ============================================
 // DASHBOARD
+// ============================================
 function updateDashboard() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -102,22 +201,31 @@ function updateDashboard() {
         return dataVenc.getMonth() === currentMonth && dataVenc.getFullYear() === currentYear;
     });
     
-    const pagos = contasDoMes.filter(c => c.status === 'PAGO').length;
+    // Calcular valores pagos
+    const valorPago = contasDoMes
+        .filter(c => c.status === 'PAGO')
+        .reduce((sum, c) => sum + parseFloat(c.valor || 0), 0);
+    
+    // Calcular contas vencidas
     const vencido = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
         return dataVenc < hoje;
     }).length;
+    
+    // Calcular contas iminentes
     const iminente = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
         return dataVenc >= hoje && dataVenc <= quinzeDias;
     }).length;
+    
+    // Calcular valor total
     const valorTotal = contasDoMes.reduce((sum, c) => sum + parseFloat(c.valor || 0), 0);
     
-    document.getElementById('statPagos').textContent = pagos;
+    document.getElementById('statPagos').textContent = `R$ ${valorPago.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     document.getElementById('statVencido').textContent = vencido;
     document.getElementById('statIminente').textContent = iminente;
     document.getElementById('statValorTotal').textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
@@ -145,7 +253,9 @@ function updateDashboard() {
     }
 }
 
+// ============================================
 // FORMULÁRIO
+// ============================================
 window.toggleForm = function() {
     showFormModal(null);
 };
@@ -234,8 +344,8 @@ function showFormModal(editingId) {
                         </div>
 
                         <div class="modal-actions">
-                            <button type="submit" class="save">${isEditing ? 'Atualizar' : 'Salvar'}</button>
-                            <button type="button" class="secondary" onclick="closeFormModal()">Cancelar</button>
+                            <button type="submit" class="save">Salvar</button>
+                            <button type="button" class="danger" onclick="closeFormModal()">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -253,11 +363,16 @@ function showFormModal(editingId) {
             e.target.setSelectionRange(pos, pos);
         });
     });
+    
+    setTimeout(() => document.getElementById('descricao')?.focus(), 100);
 }
 
 function closeFormModal() {
     const modal = document.getElementById('formModal');
-    if (modal) modal.remove();
+    if (modal) {
+        modal.style.animation = 'fadeOut 0.2s ease forwards';
+        setTimeout(() => modal.remove(), 200);
+    }
 }
 
 window.switchFormTab = function(index) {
@@ -269,7 +384,9 @@ window.switchFormTab = function(index) {
     });
 };
 
+// ============================================
 // SUBMIT
+// ============================================
 async function handleSubmit(event) {
     event.preventDefault();
     
@@ -296,6 +413,12 @@ async function handleSubmit(event) {
         formData.status = formData.data_pagamento ? 'PAGO' : 'PENDENTE';
     }
 
+    if (!isOnline) {
+        showMessage('Sistema offline. Dados não foram salvos.', 'error');
+        closeFormModal();
+        return;
+    }
+
     try {
         const url = editId ? `${API_URL}/contas/${editId}` : `${API_URL}/contas`;
         const method = editId ? 'PUT' : 'POST';
@@ -304,41 +427,52 @@ async function handleSubmit(event) {
             method,
             headers: {
                 'Content-Type': 'application/json',
-                'X-Session-Token': sessionToken
+                'X-Session-Token': sessionToken,
+                'Accept': 'application/json'
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            mode: 'cors'
         });
 
         if (response.status === 401) {
-            window.location.href = PORTAL_URL;
+            sessionStorage.removeItem('contasPagarSession');
+            mostrarTelaAcessoNegado('Sua sessão expirou');
             return;
         }
 
-        if (!response.ok) throw new Error('Erro ao salvar');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao salvar');
+        }
 
         const savedData = await response.json();
 
         if (editId) {
             const index = contas.findIndex(c => String(c.id) === String(editId));
             if (index !== -1) contas[index] = savedData;
-            showMessage('✅ Conta atualizada com sucesso!', 'success');
+            showMessage('Conta atualizada!', 'success');
         } else {
             contas.push(savedData);
-            showMessage('✅ Conta criada com sucesso!', 'success');
+            showMessage('Conta criada!', 'success');
         }
 
+        lastDataHash = JSON.stringify(contas.map(c => c.id));
         updateAllFilters();
         updateDashboard();
         filterContas();
         closeFormModal();
     } catch (error) {
-        showMessage('❌ Erro ao salvar conta', 'error');
+        console.error('Erro:', error);
+        showMessage(`Erro: ${error.message}`, 'error');
     }
 }
 
-// AÇÕES
+// ============================================
+// TOGGLE PAGO
+// ============================================
 window.togglePago = async function(id) {
-    const conta = contas.find(c => String(c.id) === String(id));
+    const idStr = String(id);
+    const conta = contas.find(c => String(c.id) === idStr);
     if (!conta) return;
 
     const novoStatus = conta.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
@@ -349,84 +483,111 @@ window.togglePago = async function(id) {
     conta.data_pagamento = novaData;
     updateDashboard();
     filterContas();
+    
+    showMessage(`Conta marcada como ${novoStatus === 'PAGO' ? 'paga' : 'pendente'}!`, 'success');
 
-    try {
-        const response = await fetch(`${API_URL}/contas/${id}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Session-Token': sessionToken
-            },
-            body: JSON.stringify({ status: novoStatus, data_pagamento: novaData })
-        });
+    if (isOnline) {
+        try {
+            const response = await fetch(`${API_URL}/contas/${idStr}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Session-Token': sessionToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ status: novoStatus, data_pagamento: novaData }),
+                mode: 'cors'
+            });
 
-        if (response.status === 401) {
-            window.location.href = PORTAL_URL;
-            return;
+            if (response.status === 401) {
+                sessionStorage.removeItem('contasPagarSession');
+                mostrarTelaAcessoNegado('Sua sessão expirou');
+                return;
+            }
+
+            if (!response.ok) throw new Error('Erro ao atualizar');
+
+            const data = await response.json();
+            const index = contas.findIndex(c => String(c.id) === idStr);
+            if (index !== -1) contas[index] = data;
+        } catch (error) {
+            conta.status = old.status;
+            conta.data_pagamento = old.data;
+            updateDashboard();
+            filterContas();
+            showMessage('Erro ao atualizar status', 'error');
         }
-
-        if (!response.ok) throw new Error();
-
-        const data = await response.json();
-        const index = contas.findIndex(c => String(c.id) === String(id));
-        if (index !== -1) contas[index] = data;
-        
-        showMessage(novoStatus === 'PAGO' ? '✅ Conta marcada como paga!' : '✅ Conta desmarcada', 'success');
-    } catch (error) {
-        conta.status = old.status;
-        conta.data_pagamento = old.data;
-        updateDashboard();
-        filterContas();
-        showMessage('❌ Erro ao atualizar status', 'error');
     }
 };
 
+// ============================================
+// EDIÇÃO
+// ============================================
 window.editConta = function(id) {
     showFormModal(String(id));
 };
 
+// ============================================
+// EXCLUSÃO
+// ============================================
 window.deleteConta = async function(id) {
     if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
 
-    const deleted = contas.find(c => String(c.id) === String(id));
-    contas = contas.filter(c => String(c.id) !== String(id));
+    const idStr = String(id);
+    const deleted = contas.find(c => String(c.id) === idStr);
+    contas = contas.filter(c => String(c.id) !== idStr);
     updateAllFilters();
     updateDashboard();
     filterContas();
-    showMessage('✅ Conta excluída com sucesso!', 'success');
+    showMessage('Conta excluída!', 'success');
 
-    try {
-        const response = await fetch(`${API_URL}/contas/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-Session-Token': sessionToken }
-        });
+    if (isOnline) {
+        try {
+            const response = await fetch(`${API_URL}/contas/${idStr}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Session-Token': sessionToken,
+                    'Accept': 'application/json'
+                },
+                mode: 'cors'
+            });
 
-        if (response.status === 401) {
-            window.location.href = PORTAL_URL;
-            return;
-        }
+            if (response.status === 401) {
+                sessionStorage.removeItem('contasPagarSession');
+                mostrarTelaAcessoNegado('Sua sessão expirou');
+                return;
+            }
 
-        if (!response.ok) throw new Error();
-    } catch (error) {
-        if (deleted) {
-            contas.push(deleted);
-            updateAllFilters();
-            updateDashboard();
-            filterContas();
-            showMessage('❌ Erro ao excluir conta', 'error');
+            if (!response.ok) throw new Error('Erro ao deletar');
+        } catch (error) {
+            if (deleted) {
+                contas.push(deleted);
+                updateAllFilters();
+                updateDashboard();
+                filterContas();
+                showMessage('Erro ao excluir conta', 'error');
+            }
         }
     }
 };
 
+// ============================================
+// VISUALIZAÇÃO
+// ============================================
 window.viewConta = function(id) {
-    const conta = contas.find(c => String(c.id) === String(id));
-    if (!conta) return;
+    const idStr = String(id);
+    const conta = contas.find(c => String(c.id) === idStr);
+    
+    if (!conta) {
+        showMessage('Conta não encontrada!', 'error');
+        return;
+    }
 
     const modal = `
-        <div class="modal-overlay" id="viewModal" onclick="if(event.target===this)closeViewModal()">
+        <div class="modal-overlay" id="viewModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Detalhes da Conta</h3>
+                    <h3 class="modal-title">Detalhes da Conta</h3>
                 </div>
                 <div class="info-section">
                     <p><strong>Descrição:</strong> ${conta.descricao}</p>
@@ -449,10 +610,15 @@ window.viewConta = function(id) {
 
 window.closeViewModal = function() {
     const modal = document.getElementById('viewModal');
-    if (modal) modal.remove();
+    if (modal) {
+        modal.style.animation = 'fadeOut 0.2s ease forwards';
+        setTimeout(() => modal.remove(), 200);
+    }
 };
 
+// ============================================
 // FILTROS
+// ============================================
 function updateAllFilters() {
     const bancos = new Set();
     contas.forEach(c => {
@@ -553,60 +719,67 @@ function filterContas() {
     renderContas(filtered);
 }
 
+// ============================================
 // RENDERIZAÇÃO
+// ============================================
 function renderContas(lista) {
     const container = document.getElementById('contasContainer');
     if (!container) return;
     
     if (!lista.length) {
-        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">Nenhuma conta encontrada</div>';
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">Nenhuma conta encontrada para este período</div>';
         return;
     }
 
     const table = `
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:40px;text-align:center">✓</th>
-                    <th>Descrição</th>
-                    <th>Valor</th>
-                    <th>Vencimento</th>
-                    <th>Banco</th>
-                    <th>Pagamento</th>
-                    <th>Status</th>
-                    <th style="text-align:center">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${lista.map(c => `
-                    <tr class="${c.status === 'PAGO' ? 'row-pago' : ''}">
-                        <td style="text-align:center">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" id="check-${c.id}" ${c.status === 'PAGO' ? 'checked' : ''} onchange="togglePago('${c.id}')" class="styled-checkbox">
-                                <label for="check-${c.id}" class="checkbox-label-styled"></label>
-                            </div>
-                        </td>
-                        <td>${c.descricao}${c.fixa ? ' <strong>(Fixa)</strong>' : ''}</td>
-                        <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
-                        <td>${formatDate(c.data_vencimento)}</td>
-                        <td>${c.banco}</td>
-                        <td>${c.forma_pagamento}</td>
-                        <td>${getStatusBadge(getStatusDinamico(c))}</td>
-                        <td style="text-align:center;white-space:nowrap">
-                            <button onclick="viewConta('${c.id}')" class="action-btn view">Ver</button>
-                            <button onclick="editConta('${c.id}')" class="action-btn edit">Editar</button>
-                            <button onclick="deleteConta('${c.id}')" class="action-btn delete">Excluir</button>
-                        </td>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: center; width: 60px;"> </th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Vencimento</th>
+                        <th>Banco</th>
+                        <th>Pagamento</th>
+                        <th>Status</th>
+                        <th style="text-align: center; min-width: 260px;">Ações</th>
                     </tr>
-                `).join('')}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    ${lista.map(c => `
+                        <tr class="${c.status === 'PAGO' ? 'row-pago' : ''}">
+                            <td style="text-align: center;">
+                                <button class="check-btn ${c.status === 'PAGO' ? 'checked' : ''}" 
+                                        onclick="togglePago('${c.id}')" 
+                                        title="${c.status === 'PAGO' ? 'Marcar como pendente' : 'Marcar como pago'}">
+                                        ✓
+                                </button>
+                            </td>
+                            <td>${c.descricao}${c.fixa ? ' <strong>(Fixa)</strong>' : ''}</td>
+                            <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
+                            <td>${formatDate(c.data_vencimento)}</td>
+                            <td>${c.banco}</td>
+                            <td>${c.forma_pagamento}</td>
+                            <td>${getStatusBadge(getStatusDinamico(c))}</td>
+                            <td class="actions-cell" style="text-align: center;">
+                                <button onclick="viewConta('${c.id}')" class="action-btn view">Ver</button>
+                                <button onclick="editConta('${c.id}')" class="action-btn edit">Editar</button>
+                                <button onclick="deleteConta('${c.id}')" class="action-btn delete">Excluir</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
     `;
     
     container.innerHTML = table;
 }
 
+// ============================================
 // UTILITÁRIOS
+// ============================================
 function formatDate(dateString) {
     if (!dateString) return '-';
     return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
