@@ -1,208 +1,99 @@
-// ============================================
 // CONFIGURAÇÃO
-// ============================================
-const PORTAL_URL = 'https://ir-comercio-portal-zcan.onrender.com';
-const API_URL = '/api'; // URL relativa - API no mesmo servidor
-
+const PORTAL_URL = 'https://ir-comercio-portal.onrender.com';
+const API_URL = '/api';
 let contas = [];
 let isOnline = false;
-let lastDataHash = '';
 let sessionToken = null;
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
+const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-const meses = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-];
-
-console.log('Contas a Pagar iniciada');
-
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        document.getElementById('splashScreen').style.display = 'none';
-        document.querySelector('.app-content').style.display = 'block';
-    }, 1500);
-    verificarAutenticacao();
+// INICIALIZAÇÃO
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        const splash = document.getElementById('splashScreen');
+        const app = document.querySelector('.app-content');
+        if (splash) splash.style.display = 'none';
+        if (app) { app.style.display = 'block'; app.style.opacity = '1'; }
+    }, 1000);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    sessionToken = urlParams.get('sessionToken') || sessionStorage.getItem('contasPagarSession') || localStorage.getItem('contasPagarSession');
+    if (!sessionToken) { window.location.href = PORTAL_URL; return; }
+    sessionStorage.setItem('contasPagarSession', sessionToken);
+    localStorage.setItem('contasPagarSession', sessionToken);
+    updateMonthDisplay();
+    checkServerStatus();
+    setInterval(checkServerStatus, 15000);
+    loadContas();
+    setInterval(loadContas, 10000);
 });
 
-// ============================================
-// NAVEGAÇÃO POR MESES
-// ============================================
+// NAVEGAÇÃO DE MESES
 function updateMonthDisplay() {
     const display = document.getElementById('currentMonthDisplay');
-    if (display) {
-        display.textContent = `${meses[currentMonth]} ${currentYear}`;
-    }
+    if (display) display.textContent = `${meses[currentMonth]} ${currentYear}`;
     updateDashboard();
     filterContas();
 }
 
 window.previousMonth = function() {
     currentMonth--;
-    if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-    }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
     updateMonthDisplay();
 };
 
 window.nextMonth = function() {
     currentMonth++;
-    if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-    }
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
     updateMonthDisplay();
 };
 
-// ============================================
-// AUTENTICAÇÃO
-// ============================================
-function verificarAutenticacao() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('sessionToken');
-
-    if (tokenFromUrl) {
-        sessionToken = tokenFromUrl;
-        sessionStorage.setItem('contasPagarSession', tokenFromUrl);
-        window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-        sessionToken = sessionStorage.getItem('contasPagarSession');
-    }
-
-    if (!sessionToken) {
-        mostrarTelaAcessoNegado();
-        return;
-    }
-
-    inicializarApp();
-}
-
-function mostrarTelaAcessoNegado(mensagem = 'NÃO AUTORIZADO') {
-    document.body.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--bg-primary); color: var(--text-primary); text-align: center; padding: 2rem;">
-            <h1 style="font-size: 2.2rem; margin-bottom: 1rem;">${mensagem}</h1>
-            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Somente usuários autenticados podem acessar esta área.</p>
-            <a href="${PORTAL_URL}" style="display: inline-block; background: var(--btn-register); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ir para o Portal</a>
-        </div>
-    `;
-}
-
-function inicializarApp() {
-    updateMonthDisplay();
-    checkServerStatus();
-    setInterval(checkServerStatus, 15000);
-    startPolling();
-}
-
-// ============================================
-// CONEXÃO E STATUS
-// ============================================
+// CONEXÃO
 async function checkServerStatus() {
     try {
         const response = await fetch(`${API_URL}/contas`, {
             method: 'GET',
-            headers: { 
-                'X-Session-Token': sessionToken,
-                'Accept': 'application/json'
-            },
-            mode: 'cors'
+            headers: { 'X-Session-Token': sessionToken }
         });
-
-        if (response.status === 401) {
-            sessionStorage.removeItem('contasPagarSession');
-            mostrarTelaAcessoNegado('Sua sessão expirou');
-            return false;
-        }
-
-        const wasOffline = !isOnline;
+        if (response.status === 401) { window.location.href = PORTAL_URL; return; }
         isOnline = response.ok;
-        
-        if (wasOffline && isOnline) {
-            console.log('Servidor ONLINE');
-            await loadContas();
-        }
-        
         updateConnectionStatus();
-        return isOnline;
     } catch (error) {
         isOnline = false;
         updateConnectionStatus();
-        return false;
     }
 }
 
 function updateConnectionStatus() {
-    const statusElement = document.getElementById('connectionStatus');
-    if (statusElement) {
-        statusElement.className = isOnline ? 'connection-status online' : 'connection-status offline';
-    }
+    const elem = document.getElementById('connectionStatus');
+    if (elem) elem.className = isOnline ? 'connection-status online' : 'connection-status offline';
 }
 
-// ============================================
-// CARREGAMENTO DE DADOS
-// ============================================
+// CARREGAR DADOS
 async function loadContas() {
-    if (!isOnline) return;
-
+    if (!sessionToken) return;
     try {
         const response = await fetch(`${API_URL}/contas`, {
             method: 'GET',
-            headers: { 
-                'X-Session-Token': sessionToken,
-                'Accept': 'application/json'
-            },
-            mode: 'cors'
+            headers: { 'X-Session-Token': sessionToken }
         });
-
-        if (response.status === 401) {
-            sessionStorage.removeItem('contasPagarSession');
-            mostrarTelaAcessoNegado('Sua sessão expirou');
-            return;
-        }
-
+        if (response.status === 401) { window.location.href = PORTAL_URL; return; }
         if (!response.ok) return;
-
-        // CORREÇÃO CRÍTICA: API agora retorna array direto
         const data = await response.json();
-        
-        // Garantir que data é um array
         if (Array.isArray(data)) {
             contas = data;
-        } else {
-            console.error('Resposta da API não é um array:', data);
-            contas = [];
-            return;
-        }
-        
-        const newHash = JSON.stringify(contas.map(c => c.id));
-        if (newHash !== lastDataHash) {
-            lastDataHash = newHash;
-            console.log(`${contas.length} contas carregadas`);
             updateAllFilters();
             updateDashboard();
             filterContas();
         }
-    } catch (error) {
-        console.error('Erro ao carregar:', error);
-    }
+    } catch (error) {}
 }
 
-function startPolling() {
-    loadContas();
-    setInterval(() => {
-        if (isOnline) loadContas();
-    }, 10000);
-}
-
-// ============================================
 // DASHBOARD
-// ============================================
 function updateDashboard() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    
     const quinzeDias = new Date(hoje);
     quinzeDias.setDate(quinzeDias.getDate() + 15);
     
@@ -212,115 +103,59 @@ function updateDashboard() {
     });
     
     const pagos = contasDoMes.filter(c => c.status === 'PAGO').length;
-    
-    const atraso = contasDoMes.filter(c => {
+    const vencido = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
         return dataVenc < hoje;
     }).length;
-    
-    const eminente = contasDoMes.filter(c => {
+    const iminente = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
         return dataVenc >= hoje && dataVenc <= quinzeDias;
     }).length;
-    
     const valorTotal = contasDoMes.reduce((sum, c) => sum + parseFloat(c.valor || 0), 0);
     
     document.getElementById('statPagos').textContent = pagos;
-    document.getElementById('statAtraso').textContent = atraso;
-    document.getElementById('statEminente').textContent = eminente;
-    document.getElementById('statValorTotal').textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('statVencido').textContent = vencido;
+    document.getElementById('statIminente').textContent = iminente;
+    document.getElementById('statValorTotal').textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     
-    const cardAtraso = document.getElementById('cardAtraso');
-    const badgeAtraso = document.getElementById('pulseBadgeAtraso');
-    
-    if (atraso > 0) {
-        cardAtraso.classList.add('has-alert');
-        badgeAtraso.style.display = 'flex';
-        badgeAtraso.textContent = atraso;
+    const cardVencido = document.getElementById('cardVencido');
+    const badgeVencido = document.getElementById('pulseBadgeVencido');
+    if (vencido > 0) {
+        cardVencido.classList.add('has-alert');
+        badgeVencido.style.display = 'flex';
+        badgeVencido.textContent = vencido;
     } else {
-        cardAtraso.classList.remove('has-alert');
-        badgeAtraso.style.display = 'none';
+        cardVencido.classList.remove('has-alert');
+        badgeVencido.style.display = 'none';
     }
     
-    const cardEminente = document.getElementById('cardEminente');
-    const badgeEminente = document.getElementById('pulseBadgeEminente');
-    
-    if (eminente > 0) {
-        cardEminente.classList.add('has-warning');
-        badgeEminente.style.display = 'flex';
-        badgeEminente.textContent = eminente;
+    const cardIminente = document.getElementById('cardIminente');
+    const badgeIminente = document.getElementById('pulseBadgeIminente');
+    if (iminente > 0) {
+        cardIminente.classList.add('has-warning');
+        badgeIminente.style.display = 'flex';
+        badgeIminente.textContent = iminente;
     } else {
-        cardEminente.classList.remove('has-warning');
-        badgeEminente.style.display = 'none';
+        cardIminente.classList.remove('has-warning');
+        badgeIminente.style.display = 'none';
     }
 }
 
-// ============================================
-// MODAL DE CONFIRMAÇÃO
-// ============================================
-function showConfirm(message, options = {}) {
-    return new Promise((resolve) => {
-        const { title = 'Confirmação', confirmText = 'Confirmar', cancelText = 'Cancelar', type = 'warning' } = options;
-
-        const modalHTML = `
-            <div class="modal-overlay" id="confirmModal" style="z-index: 10001;">
-                <div class="modal-content" style="max-width: 450px;">
-                    <div class="modal-header">
-                        <h3 class="modal-title">${title}</h3>
-                    </div>
-                    <p style="margin: 1.5rem 0; color: var(--text-primary); font-size: 1rem; line-height: 1.6;">${message}</p>
-                    <div class="modal-actions">
-                        <button class="secondary" id="modalCancelBtn">${cancelText}</button>
-                        <button class="${type === 'warning' ? 'danger' : 'success'}" id="modalConfirmBtn">${confirmText}</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        const modal = document.getElementById('confirmModal');
-        const confirmBtn = document.getElementById('modalConfirmBtn');
-        const cancelBtn = document.getElementById('modalCancelBtn');
-
-        const closeModal = (result) => {
-            modal.style.animation = 'fadeOut 0.2s ease forwards';
-            setTimeout(() => { 
-                modal.remove(); 
-                resolve(result); 
-            }, 200);
-        };
-
-        confirmBtn.addEventListener('click', () => closeModal(true));
-        cancelBtn.addEventListener('click', () => closeModal(false));
-
-        if (!document.querySelector('#modalAnimations')) {
-            const style = document.createElement('style');
-            style.id = 'modalAnimations';
-            style.textContent = `@keyframes fadeOut { to { opacity: 0; } }`;
-            document.head.appendChild(style);
-        }
-    });
-}
-
-// ============================================
 // FORMULÁRIO
-// ============================================
 window.toggleForm = function() {
     showFormModal(null);
 };
 
-function showFormModal(editingId = null) {
+function showFormModal(editingId) {
     const isEditing = editingId !== null;
     let conta = null;
     
     if (isEditing) {
-        const idStr = String(editingId);
-        conta = contas.find(c => String(c.id) === idStr);
-        
+        conta = contas.find(c => String(c.id) === String(editingId));
         if (!conta) {
             showMessage('Conta não encontrada!', 'error');
             return;
@@ -354,17 +189,14 @@ function showFormModal(editingId = null) {
                                     <input type="number" id="valor" step="0.01" min="0" value="${conta?.valor || ''}" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="data_vencimento">Data de Vencimento *</label>
+                                    <label for="data_vencimento">Vencimento *</label>
                                     <input type="date" id="data_vencimento" value="${conta?.data_vencimento || ''}" required>
                                 </div>
-                                <div class="form-group">
-                                    <label for="frequencia">Frequência *</label>
-                                    <select id="frequencia" required>
-                                        <option value="">Selecione...</option>
-                                        <option value="MENSAL" ${conta?.frequencia === 'MENSAL' ? 'selected' : ''}>Mensal</option>
-                                        <option value="ANUAL" ${conta?.frequencia === 'ANUAL' ? 'selected' : ''}>Anual</option>
-                                        <option value="UNICA" ${conta?.frequencia === 'UNICA' ? 'selected' : ''}>Única</option>
-                                    </select>
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <div class="checkbox-fixa-wrapper">
+                                        <input type="checkbox" id="fixa" ${conta?.fixa ? 'checked' : ''}>
+                                        <label for="fixa">Esta é uma conta fixa (se repetirá todos os meses)</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -375,12 +207,10 @@ function showFormModal(editingId = null) {
                                     <label for="forma_pagamento">Forma de Pagamento *</label>
                                     <select id="forma_pagamento" required>
                                         <option value="">Selecione...</option>
-                                        <option value="PIX" ${conta?.forma_pagamento === 'PIX' ? 'selected' : ''}>PIX</option>
                                         <option value="BOLETO" ${conta?.forma_pagamento === 'BOLETO' ? 'selected' : ''}>Boleto</option>
-                                        <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>Transferência</option>
-                                        <option value="DEBITO" ${conta?.forma_pagamento === 'DEBITO' ? 'selected' : ''}>Débito Automático</option>
                                         <option value="CARTAO" ${conta?.forma_pagamento === 'CARTAO' ? 'selected' : ''}>Cartão</option>
                                         <option value="DINHEIRO" ${conta?.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>Dinheiro</option>
+                                        <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>Transferência</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -388,16 +218,17 @@ function showFormModal(editingId = null) {
                                     <select id="banco" required>
                                         <option value="">Selecione...</option>
                                         <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>Banco do Brasil</option>
-                                        <option value="CAIXA" ${conta?.banco === 'CAIXA' ? 'selected' : ''}>Caixa Econômica</option>
                                         <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>Bradesco</option>
-                                        <option value="ITAU" ${conta?.banco === 'ITAU' ? 'selected' : ''}>Itaú</option>
-                                        <option value="SANTANDER" ${conta?.banco === 'SANTANDER' ? 'selected' : ''}>Santander</option>
                                         <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>Sicoob</option>
                                     </select>
                                 </div>
+                                <div class="form-group">
+                                    <label for="data_pagamento">Data do Pagamento</label>
+                                    <input type="date" id="data_pagamento" value="${conta?.data_pagamento || ''}">
+                                </div>
                                 <div class="form-group" style="grid-column: 1 / -1;">
                                     <label for="observacoes">Observações</label>
-                                    <input type="text" id="observacoes" value="${conta?.observacoes || ''}" placeholder="Ex: Nota recebida, pendente...">
+                                    <input type="text" id="observacoes" value="${conta?.observacoes || ''}">
                                 </div>
                             </div>
                         </div>
@@ -414,76 +245,55 @@ function showFormModal(editingId = null) {
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
-    const camposMaiusculas = ['descricao', 'observacoes'];
-    camposMaiusculas.forEach(campoId => {
-        const campo = document.getElementById(campoId);
-        if (campo) {
-            campo.addEventListener('input', (e) => {
-                const start = e.target.selectionStart;
-                e.target.value = e.target.value.toUpperCase();
-                e.target.setSelectionRange(start, start);
-            });
-        }
+    ['descricao', 'observacoes'].forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) campo.addEventListener('input', e => {
+            const pos = e.target.selectionStart;
+            e.target.value = e.target.value.toUpperCase();
+            e.target.setSelectionRange(pos, pos);
+        });
     });
-    
-    setTimeout(() => document.getElementById('descricao')?.focus(), 100);
 }
 
 function closeFormModal() {
     const modal = document.getElementById('formModal');
-    if (modal) {
-        modal.style.animation = 'fadeOut 0.2s ease forwards';
-        setTimeout(() => modal.remove(), 200);
-    }
+    if (modal) modal.remove();
 }
 
-// ============================================
-// SISTEMA DE ABAS
-// ============================================
 window.switchFormTab = function(index) {
-    const tabButtons = document.querySelectorAll('#formModal .tab-btn');
-    const tabContents = document.querySelectorAll('#formModal .tab-content');
-    
-    tabButtons.forEach((btn, i) => {
+    document.querySelectorAll('#formModal .tab-btn').forEach((btn, i) => {
         btn.classList.toggle('active', i === index);
     });
-    
-    tabContents.forEach((content, i) => {
+    document.querySelectorAll('#formModal .tab-content').forEach((content, i) => {
         content.classList.toggle('active', i === index);
     });
 };
 
-// ============================================
 // SUBMIT
-// ============================================
 async function handleSubmit(event) {
-    if (event) event.preventDefault();
-
+    event.preventDefault();
+    
     const formData = {
         descricao: document.getElementById('descricao').value.trim(),
         valor: parseFloat(document.getElementById('valor').value),
         data_vencimento: document.getElementById('data_vencimento').value,
-        frequencia: document.getElementById('frequencia').value,
         forma_pagamento: document.getElementById('forma_pagamento').value,
         banco: document.getElementById('banco').value,
-        observacoes: document.getElementById('observacoes').value.trim() || null
+        data_pagamento: document.getElementById('data_pagamento').value || null,
+        observacoes: document.getElementById('observacoes').value.trim() || null,
+        fixa: document.getElementById('fixa').checked
     };
 
     const editId = document.getElementById('editId').value;
-
-    // Ao editar, preservar status e data_pagamento
     if (editId) {
-        const contaExistente = contas.find(c => String(c.id) === String(editId));
-        if (contaExistente) {
-            formData.status = contaExistente.status;
-            formData.data_pagamento = contaExistente.data_pagamento;
+        const conta = contas.find(c => String(c.id) === String(editId));
+        if (conta && !formData.data_pagamento) {
+            formData.status = conta.status;
+        } else {
+            formData.status = formData.data_pagamento ? 'PAGO' : 'PENDENTE';
         }
-    }
-
-    if (!isOnline) {
-        showMessage('Sistema offline. Dados não foram salvos.', 'error');
-        closeFormModal();
-        return;
+    } else {
+        formData.status = formData.data_pagamento ? 'PAGO' : 'PENDENTE';
     }
 
     try {
@@ -494,387 +304,248 @@ async function handleSubmit(event) {
             method,
             headers: {
                 'Content-Type': 'application/json',
-                'X-Session-Token': sessionToken,
-                'Accept': 'application/json'
+                'X-Session-Token': sessionToken
             },
-            body: JSON.stringify(formData),
-            mode: 'cors'
+            body: JSON.stringify(formData)
         });
 
         if (response.status === 401) {
-            sessionStorage.removeItem('contasPagarSession');
-            mostrarTelaAcessoNegado('Sua sessão expirou');
+            window.location.href = PORTAL_URL;
             return;
         }
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Erro ao salvar');
-        }
+        if (!response.ok) throw new Error('Erro ao salvar');
 
         const savedData = await response.json();
 
-        // Atualizar array local
         if (editId) {
             const index = contas.findIndex(c => String(c.id) === String(editId));
             if (index !== -1) contas[index] = savedData;
-            showMessage('Conta atualizada!', 'success');
+            showMessage('✅ Conta atualizada com sucesso!', 'success');
         } else {
             contas.push(savedData);
-            showMessage('Conta criada!', 'success');
+            showMessage('✅ Conta criada com sucesso!', 'success');
         }
 
-        lastDataHash = JSON.stringify(contas.map(c => c.id));
         updateAllFilters();
         updateDashboard();
         filterContas();
         closeFormModal();
-
     } catch (error) {
-        console.error('Erro:', error);
-        showMessage(`Erro: ${error.message}`, 'error');
+        showMessage('❌ Erro ao salvar conta', 'error');
     }
 }
 
-// ============================================
-// TOGGLE PAGO
-// ============================================
+// AÇÕES
 window.togglePago = async function(id) {
-    const idStr = String(id);
-    const conta = contas.find(c => String(c.id) === idStr);
-    
+    const conta = contas.find(c => String(c.id) === String(id));
     if (!conta) return;
 
     const novoStatus = conta.status === 'PAGO' ? 'PENDENTE' : 'PAGO';
-    const novaDataPagamento = novoStatus === 'PAGO' ? new Date().toISOString().split('T')[0] : null;
+    const novaData = novoStatus === 'PAGO' ? new Date().toISOString().split('T')[0] : null;
 
-    // Atualizar localmente primeiro (UI otimista)
-    const statusAnterior = conta.status;
-    const dataPagamentoAnterior = conta.data_pagamento;
-    
+    const old = { status: conta.status, data: conta.data_pagamento };
     conta.status = novoStatus;
-    conta.data_pagamento = novaDataPagamento;
-    
+    conta.data_pagamento = novaData;
     updateDashboard();
     filterContas();
 
-    if (isOnline) {
-        try {
-            const response = await fetch(`${API_URL}/contas/${idStr}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Session-Token': sessionToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    status: novoStatus,
-                    data_pagamento: novaDataPagamento
-                }),
-                mode: 'cors'
-            });
+    try {
+        const response = await fetch(`${API_URL}/contas/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Session-Token': sessionToken
+            },
+            body: JSON.stringify({ status: novoStatus, data_pagamento: novaData })
+        });
 
-            if (!response.ok) throw new Error('Erro ao atualizar');
-
-            const savedData = await response.json();
-            const index = contas.findIndex(c => String(c.id) === idStr);
-            if (index !== -1) contas[index] = savedData;
-
-        } catch (error) {
-            console.error('Erro ao atualizar status:', error);
-            // Reverter mudança local
-            conta.status = statusAnterior;
-            conta.data_pagamento = dataPagamentoAnterior;
-            updateDashboard();
-            filterContas();
-            showMessage('Erro ao atualizar status', 'error');
+        if (response.status === 401) {
+            window.location.href = PORTAL_URL;
+            return;
         }
+
+        if (!response.ok) throw new Error();
+
+        const data = await response.json();
+        const index = contas.findIndex(c => String(c.id) === String(id));
+        if (index !== -1) contas[index] = data;
+        
+        showMessage(novoStatus === 'PAGO' ? '✅ Conta marcada como paga!' : '✅ Conta desmarcada', 'success');
+    } catch (error) {
+        conta.status = old.status;
+        conta.data_pagamento = old.data;
+        updateDashboard();
+        filterContas();
+        showMessage('❌ Erro ao atualizar status', 'error');
     }
 };
 
-// ============================================
-// EDIÇÃO
-// ============================================
 window.editConta = function(id) {
-    const idStr = String(id);
-    const conta = contas.find(c => String(c.id) === idStr);
-    
-    if (!conta) {
-        showMessage('Conta não encontrada!', 'error');
-        return;
-    }
-    
-    showFormModal(idStr);
+    showFormModal(String(id));
 };
 
-// ============================================
-// EXCLUSÃO
-// ============================================
 window.deleteConta = async function(id) {
-    const confirmed = await showConfirm(
-        'Tem certeza que deseja excluir esta conta?',
-        {
-            title: 'Excluir Conta',
-            confirmText: 'Excluir',
-            cancelText: 'Cancelar',
-            type: 'warning'
-        }
-    );
+    if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
 
-    if (!confirmed) return;
-
-    const idStr = String(id);
-    const deletedConta = contas.find(c => String(c.id) === idStr);
-    
-    // Remover localmente primeiro
-    contas = contas.filter(c => String(c.id) !== idStr);
+    const deleted = contas.find(c => String(c.id) === String(id));
+    contas = contas.filter(c => String(c.id) !== String(id));
     updateAllFilters();
     updateDashboard();
     filterContas();
-    showMessage('Conta excluída!', 'success');
+    showMessage('✅ Conta excluída com sucesso!', 'success');
 
-    if (isOnline) {
-        try {
-            const response = await fetch(`${API_URL}/contas/${idStr}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-Session-Token': sessionToken,
-                    'Accept': 'application/json'
-                },
-                mode: 'cors'
-            });
+    try {
+        const response = await fetch(`${API_URL}/contas/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-Session-Token': sessionToken }
+        });
 
-            if (!response.ok) throw new Error('Erro ao deletar');
-        } catch (error) {
-            console.error('Erro ao excluir:', error);
-            // Restaurar conta se falhou
-            if (deletedConta) {
-                contas.push(deletedConta);
-                updateAllFilters();
-                updateDashboard();
-                filterContas();
-                showMessage('Erro ao excluir', 'error');
-            }
+        if (response.status === 401) {
+            window.location.href = PORTAL_URL;
+            return;
+        }
+
+        if (!response.ok) throw new Error();
+    } catch (error) {
+        if (deleted) {
+            contas.push(deleted);
+            updateAllFilters();
+            updateDashboard();
+            filterContas();
+            showMessage('❌ Erro ao excluir conta', 'error');
         }
     }
 };
 
-// ============================================
-// VISUALIZAÇÃO
-// ============================================
 window.viewConta = function(id) {
-    const idStr = String(id);
-    const conta = contas.find(c => String(c.id) === idStr);
-    
-    if (!conta) {
-        showMessage('Conta não encontrada!', 'error');
-        return;
-    }
+    const conta = contas.find(c => String(c.id) === String(id));
+    if (!conta) return;
 
-    const modalHTML = `
-        <div class="modal-overlay" id="viewModal">
+    const modal = `
+        <div class="modal-overlay" id="viewModal" onclick="if(event.target===this)closeViewModal()">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">Detalhes da Conta</h3>
+                    <h3>Detalhes da Conta</h3>
                 </div>
-                
-                <div class="tabs-container">
-                    <div class="tabs-nav">
-                        <button class="tab-btn active" onclick="switchViewTab(0)">Dados da Conta</button>
-                        <button class="tab-btn" onclick="switchViewTab(1)">Pagamento</button>
-                    </div>
-
-                    <div class="tab-content active" id="view-tab-conta">
-                        <div class="info-section">
-                            <h4>Informações da Conta</h4>
-                            <p><strong>Descrição:</strong> ${conta.descricao}</p>
-                            <p><strong>Valor:</strong> R$ ${parseFloat(conta.valor).toFixed(2)}</p>
-                            <p><strong>Data Vencimento:</strong> ${formatDate(conta.data_vencimento)}</p>
-                            <p><strong>Frequência:</strong> ${getFrequenciaText(conta.frequencia)}</p>
-                            ${conta.observacoes ? `<p><strong>Observações:</strong> ${conta.observacoes}</p>` : ''}
-                            <p><strong>Status:</strong> ${getStatusBadge(getStatusDinamico(conta))}</p>
-                        </div>
-                    </div>
-
-                    <div class="tab-content" id="view-tab-pagamento">
-                        <div class="info-section">
-                            <h4>Informações de Pagamento</h4>
-                            <p><strong>Forma de Pagamento:</strong> ${conta.forma_pagamento}</p>
-                            <p><strong>Banco:</strong> ${conta.banco}</p>
-                            ${conta.data_pagamento ? `<p><strong>Data do Pagamento:</strong> ${formatDate(conta.data_pagamento)}</p>` : '<p><em>Ainda não pago</em></p>'}
-                        </div>
-                    </div>
+                <div class="info-section">
+                    <p><strong>Descrição:</strong> ${conta.descricao}</p>
+                    <p><strong>Valor:</strong> R$ ${parseFloat(conta.valor).toFixed(2)}</p>
+                    <p><strong>Vencimento:</strong> ${formatDate(conta.data_vencimento)}</p>
+                    <p><strong>Forma de Pagamento:</strong> ${conta.forma_pagamento}</p>
+                    <p><strong>Banco:</strong> ${conta.banco}</p>
+                    <p><strong>Conta Fixa:</strong> ${conta.fixa ? 'Sim' : 'Não'}</p>
+                    ${conta.data_pagamento ? `<p><strong>Data do Pagamento:</strong> ${formatDate(conta.data_pagamento)}</p>` : '<p><strong>Status:</strong> Não pago</p>'}
+                    ${conta.observacoes ? `<p><strong>Observações:</strong> ${conta.observacoes}</p>` : ''}
                 </div>
-
                 <div class="modal-actions">
                     <button class="secondary" onclick="closeViewModal()">Fechar</button>
                 </div>
             </div>
         </div>
     `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.body.insertAdjacentHTML('beforeend', modal);
 };
 
-function closeViewModal() {
+window.closeViewModal = function() {
     const modal = document.getElementById('viewModal');
-    if (modal) {
-        modal.style.animation = 'fadeOut 0.2s ease forwards';
-        setTimeout(() => modal.remove(), 200);
-    }
-}
-
-window.switchViewTab = function(index) {
-    document.querySelectorAll('#viewModal .tab-btn').forEach((btn, i) => {
-        btn.classList.toggle('active', i === index);
-    });
-    
-    document.querySelectorAll('#viewModal .tab-content').forEach((content, i) => {
-        content.classList.toggle('active', i === index);
-    });
+    if (modal) modal.remove();
 };
 
-// ============================================
 // FILTROS
-// ============================================
 function updateAllFilters() {
-    updateBancosFilter();
-    updateStatusFilter();
-}
-
-function updateBancosFilter() {
     const bancos = new Set();
     contas.forEach(c => {
-        if (c.banco?.trim()) {
-            bancos.add(c.banco.trim());
-        }
+        if (c.banco?.trim()) bancos.add(c.banco.trim());
     });
-
+    
     const select = document.getElementById('filterBanco');
     if (select) {
-        const currentValue = select.value;
+        const val = select.value;
         select.innerHTML = '<option value="">Todos</option>';
         Array.from(bancos).sort().forEach(b => {
-            const option = document.createElement('option');
-            option.value = b;
-            option.textContent = b;
-            select.appendChild(option);
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = b;
+            select.appendChild(opt);
         });
-        select.value = currentValue;
+        select.value = val;
     }
-}
-
-function updateStatusFilter() {
+    
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    
-    const statusSet = new Set();
-    let temAtraso = false;
-    let temEmin// CONTINUAÇÃO DO CÓDIGO - Cole depois da linha "let temEmin"
-
-ente = false;
+    let temVencido = false, temIminente = false, temPago = false;
     
     contas.forEach(c => {
         if (c.status === 'PAGO') {
-            statusSet.add('PAGO');
+            temPago = true;
         } else {
             const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
             dataVenc.setHours(0, 0, 0, 0);
-            
             if (dataVenc < hoje) {
-                temAtraso = true;
+                temVencido = true;
             } else {
-                const quinzeDias = new Date(hoje);
-                quinzeDias.setDate(quinzeDias.getDate() + 15);
-                if (dataVenc <= quinzeDias) {
-                    temEminente = true;
-                }
+                const quinze = new Date(hoje);
+                quinze.setDate(quinze.getDate() + 15);
+                if (dataVenc <= quinze) temIminente = true;
             }
         }
     });
 
-    const select = document.getElementById('filterStatus');
-    if (select) {
-        const currentValue = select.value;
-        select.innerHTML = '<option value="">Todos</option>';
-        
-        if (statusSet.has('PAGO')) {
-            const opt = document.createElement('option');
-            opt.value = 'PAGO';
-            opt.textContent = 'Pago';
-            select.appendChild(opt);
-        }
-        
-        if (temAtraso) {
-            const opt = document.createElement('option');
-            opt.value = 'ATRASO';
-            opt.textContent = 'Em Atraso';
-            select.appendChild(opt);
-        }
-        
-        if (temEminente) {
-            const opt = document.createElement('option');
-            opt.value = 'EMINENTE';
-            opt.textContent = 'Eminente';
-            select.appendChild(opt);
-        }
-        
-        select.value = currentValue;
+    const statusSelect = document.getElementById('filterStatus');
+    if (statusSelect) {
+        const val = statusSelect.value;
+        statusSelect.innerHTML = '<option value="">Todos</option>';
+        if (temPago) statusSelect.innerHTML += '<option value="PAGO">Pago</option>';
+        if (temVencido) statusSelect.innerHTML += '<option value="VENCIDO">Vencido</option>';
+        if (temIminente) statusSelect.innerHTML += '<option value="IMINENTE">Iminente</option>';
+        statusSelect.value = val;
     }
 }
 
 function filterContas() {
-    const searchTerm = document.getElementById('search')?.value.toLowerCase() || '';
-    const filterBanco = document.getElementById('filterBanco')?.value || '';
-    const filterStatus = document.getElementById('filterStatus')?.value || '';
-    const filterFrequencia = document.getElementById('filterFrequencia')?.value || '';
+    const search = (document.getElementById('search')?.value || '').toLowerCase();
+    const banco = document.getElementById('filterBanco')?.value || '';
+    const status = document.getElementById('filterStatus')?.value || '';
+    const pagamento = document.getElementById('filterPagamento')?.value || '';
     
-    let filtered = [...contas];
-
-    filtered = filtered.filter(c => {
+    let filtered = contas.filter(c => {
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         return dataVenc.getMonth() === currentMonth && dataVenc.getFullYear() === currentYear;
     });
 
-    if (filterBanco) {
-        filtered = filtered.filter(c => c.banco === filterBanco);
-    }
-
-    if (filterStatus) {
+    if (banco) filtered = filtered.filter(c => c.banco === banco);
+    if (pagamento) filtered = filtered.filter(c => c.forma_pagamento === pagamento);
+    
+    if (status) {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
-        const quinzeDias = new Date(hoje);
-        quinzeDias.setDate(quinzeDias.getDate() + 15);
+        const quinze = new Date(hoje);
+        quinze.setDate(quinze.getDate() + 15);
         
         filtered = filtered.filter(c => {
-            if (filterStatus === 'PAGO') {
-                return c.status === 'PAGO';
-            }
-            if (filterStatus === 'ATRASO') {
+            if (status === 'PAGO') return c.status === 'PAGO';
+            if (status === 'VENCIDO') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
                 return dataVenc < hoje;
             }
-            if (filterStatus === 'EMINENTE') {
+            if (status === 'IMINENTE') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
-                return dataVenc >= hoje && dataVenc <= quinzeDias;
+                return dataVenc >= hoje && dataVenc <= quinze;
             }
             return true;
         });
     }
 
-    if (filterFrequencia) {
-        filtered = filtered.filter(c => c.frequencia === filterFrequencia);
-    }
-
-    if (searchTerm) {
+    if (search) {
         filtered = filtered.filter(c => 
-            c.descricao?.toLowerCase().includes(searchTerm) ||
-            c.banco?.toLowerCase().includes(searchTerm) ||
-            c.forma_pagamento?.toLowerCase().includes(searchTerm)
+            (c.descricao || '').toLowerCase().includes(search) ||
+            (c.banco || '').toLowerCase().includes(search) ||
+            (c.forma_pagamento || '').toLowerCase().includes(search)
         );
     }
 
@@ -882,134 +553,100 @@ function filterContas() {
     renderContas(filtered);
 }
 
-// ============================================
 // RENDERIZAÇÃO
-// ============================================
-function renderContas(contasToRender) {
+function renderContas(lista) {
     const container = document.getElementById('contasContainer');
-    
     if (!container) return;
     
-    if (!contasToRender || contasToRender.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Nenhuma conta encontrada</div>';
+    if (!lista.length) {
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary)">Nenhuma conta encontrada</div>';
         return;
     }
 
     const table = `
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 40px; text-align: center;">
-                            <span style="font-size: 1.1rem;">✓</span>
-                        </th>
-                        <th>Descrição</th>
-                        <th>Valor</th>
-                        <th>Vencimento</th>
-                        <th>Banco</th>
-                        <th>Frequência</th>
-                        <th>Status</th>
-                        <th style="text-align: center;">Ações</th>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:40px;text-align:center">✓</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th>Banco</th>
+                    <th>Pagamento</th>
+                    <th>Status</th>
+                    <th style="text-align:center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${lista.map(c => `
+                    <tr class="${c.status === 'PAGO' ? 'row-pago' : ''}">
+                        <td style="text-align:center">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="check-${c.id}" ${c.status === 'PAGO' ? 'checked' : ''} onchange="togglePago('${c.id}')" class="styled-checkbox">
+                                <label for="check-${c.id}" class="checkbox-label-styled"></label>
+                            </div>
+                        </td>
+                        <td>${c.descricao}${c.fixa ? ' <strong>(Fixa)</strong>' : ''}</td>
+                        <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
+                        <td>${formatDate(c.data_vencimento)}</td>
+                        <td>${c.banco}</td>
+                        <td>${c.forma_pagamento}</td>
+                        <td>${getStatusBadge(getStatusDinamico(c))}</td>
+                        <td style="text-align:center;white-space:nowrap">
+                            <button onclick="viewConta('${c.id}')" class="action-btn view">Ver</button>
+                            <button onclick="editConta('${c.id}')" class="action-btn edit">Editar</button>
+                            <button onclick="deleteConta('${c.id}')" class="action-btn delete">Excluir</button>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    ${contasToRender.map(c => {
-                        const isPago = c.status === 'PAGO';
-                        return `
-                        <tr class="${isPago ? 'row-pago' : ''}">
-                            <td style="text-align: center; padding: 8px;">
-                                <div class="checkbox-wrapper">
-                                    <input 
-                                        type="checkbox" 
-                                        id="check-${c.id}"
-                                        ${isPago ? 'checked' : ''}
-                                        onchange="togglePago('${c.id}')"
-                                        class="styled-checkbox"
-                                    >
-                                    <label for="check-${c.id}" class="checkbox-label-styled"></label>
-                                </div>
-                            </td>
-                            <td>${c.descricao}</td>
-                            <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
-                            <td style="white-space: nowrap;">${formatDate(c.data_vencimento)}</td>
-                            <td>${c.banco}</td>
-                            <td>${getFrequenciaText(c.frequencia)}</td>
-                            <td>${getStatusBadge(getStatusDinamico(c))}</td>
-                            <td class="actions-cell" style="text-align: center; white-space: nowrap;">
-                                <button onclick="viewConta('${c.id}')" class="action-btn view" title="Ver detalhes">Ver</button>
-                                <button onclick="editConta('${c.id}')" class="action-btn edit" title="Editar">Editar</button>
-                                <button onclick="deleteConta('${c.id}')" class="action-btn delete" title="Excluir">Excluir</button>
-                            </td>
-                        </tr>
-                    `}).join('')}
-                </tbody>
-            </table>
-        </div>
+                `).join('')}
+            </tbody>
+        </table>
     `;
     
     container.innerHTML = table;
 }
 
-// ============================================
-// UTILIDADES
-// ============================================
+// UTILITÁRIOS
 function formatDate(dateString) {
     if (!dateString) return '-';
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR');
-}
-
-function getFrequenciaText(freq) {
-    const map = {
-        'MENSAL': 'Mensal',
-        'ANUAL': 'Anual',
-        'UNICA': 'Única'
-    };
-    return map[freq] || freq;
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
 }
 
 function getStatusDinamico(conta) {
     if (conta.status === 'PAGO') return 'PAGO';
-    
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const dataVenc = new Date(conta.data_vencimento + 'T00:00:00');
     dataVenc.setHours(0, 0, 0, 0);
-    
-    if (dataVenc < hoje) return 'ATRASO';
-    
-    const quinzeDias = new Date(hoje);
-    quinzeDias.setDate(quinzeDias.getDate() + 15);
-    
-    if (dataVenc <= quinzeDias) return 'EMINENTE';
-    
+    if (dataVenc < hoje) return 'VENCIDO';
+    const quinze = new Date(hoje);
+    quinze.setDate(quinze.getDate() + 15);
+    if (dataVenc <= quinze) return 'IMINENTE';
     return 'PENDENTE';
 }
 
 function getStatusBadge(status) {
-    const statusMap = {
-        'PAGO': { class: 'entregue', text: 'Pago' },
-        'ATRASO': { class: 'devolvido', text: 'Atrasado' },
-        'EMINENTE': { class: 'rota', text: 'Eminente' },
-        'PENDENTE': { class: 'transito', text: 'Pendente' }
+    const map = {
+        'PAGO': { class: 'pago', text: 'Pago' },
+        'VENCIDO': { class: 'vencido', text: 'Vencido' },
+        'IMINENTE': { class: 'iminente', text: 'Iminente' },
+        'PENDENTE': { class: 'pendente', text: 'Pendente' }
     };
-    
-    const s = statusMap[status] || { class: 'transito', text: status };
+    const s = map[status] || { class: 'pendente', text: status };
     return `<span class="badge ${s.class}">${s.text}</span>`;
 }
 
 function showMessage(message, type) {
-    const oldMessages = document.querySelectorAll('.floating-message');
-    oldMessages.forEach(msg => msg.remove());
+    const old = document.querySelectorAll('.floating-message');
+    old.forEach(m => m.remove());
     
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `floating-message ${type}`;
-    messageDiv.textContent = message;
-    
-    document.body.appendChild(messageDiv);
+    const div = document.createElement('div');
+    div.className = `floating-message ${type}`;
+    div.textContent = message;
+    document.body.appendChild(div);
     
     setTimeout(() => {
-        messageDiv.style.animation = 'slideOut 0.3s ease forwards';
-        setTimeout(() => messageDiv.remove(), 300);
+        div.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => div.remove(), 300);
     }, 3000);
 }
