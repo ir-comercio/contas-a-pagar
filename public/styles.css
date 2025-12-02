@@ -172,7 +172,7 @@ h1 {
 }
 
 /* ============================================
-   BOTÃO FLUTUANTE
+   BOTÕES FLUTUANTES
    ============================================ */
 .floating-add-btn {
     position: fixed;
@@ -205,6 +205,41 @@ h1 {
 }
 
 .floating-add-btn svg {
+    width: 28px;
+    height: 28px;
+}
+
+.floating-parcelas-btn {
+    position: fixed;
+    bottom: 9rem;
+    right: 2rem;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(204, 112, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    padding: 0;
+    margin: 0;
+}
+
+.floating-parcelas-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(204, 112, 0, 0.6);
+}
+
+.floating-parcelas-btn:active {
+    transform: scale(0.95);
+}
+
+.floating-parcelas-btn svg {
     width: 28px;
     height: 28px;
 }
@@ -416,6 +451,36 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* PARCELAMENTO */
+.modal-parcelas {
+    max-width: 1000px;
+}
+
+.tab-btn-add {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    color: var(--primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin-left: 0.5rem;
+}
+
+.tab-btn-add:hover {
+    background: rgba(204, 112, 0, 0.1);
+    transform: scale(1.1);
+}
+
+.parcela-info {
+    background: rgba(204, 112, 0, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(204, 112, 0, 0.3);
+    color: var(--text-primary);
+}
+
 .parcelas-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
