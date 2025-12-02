@@ -426,10 +426,7 @@ th {
     letter-spacing: 1px;
     border-bottom: 1px solid var(--th-border);
     vertical-align: middle;
-    white-space: normal;
-    word-wrap: break-word;
-    word-break: break-word;
-    overflow-wrap: break-word;
+    white-space: nowrap;
 }
 
 td {
