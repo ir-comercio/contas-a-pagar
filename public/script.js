@@ -338,12 +338,27 @@ function showFormModal(editingId) {
     
     ['descricao', 'observacoes', 'documento'].forEach(id => {
         const campo = document.getElementById(id);
-        if (campo) campo.addEventListener('input', e => {
+        if (campo) {
+            campo.addEventListener('input', e => {
+                const pos = e.target.selectionStart;
+                e.target.value = e.target.value.toUpperCase();
+                e.target.setSelectionRange(pos, pos);
+            });
+            // Aplicar uppercase também ao valor inicial
+            campo.style.textTransform = 'uppercase';
+        }
+    });
+    
+    // Forçar uppercase no campo num_parcela também
+    const numParcelaField = document.getElementById('num_parcela');
+    if (numParcelaField) {
+        numParcelaField.addEventListener('input', e => {
             const pos = e.target.selectionStart;
             e.target.value = e.target.value.toUpperCase();
             e.target.setSelectionRange(pos, pos);
         });
-    });
+        numParcelaField.style.textTransform = 'uppercase';
+    }
     
     setTimeout(() => document.getElementById('documento')?.focus(), 100);
 }
@@ -758,7 +773,7 @@ function renderContas(lista) {
                         <th>Descrição</th>
                         <th>Valor</th>
                         <th>Vencimento</th>
-                        <th>Banco</th>
+                        <th>Nº Parcelas</th>
                         <th>Observação</th>
                         <th>Data Pagamento</th>
                         <th>Status</th>
@@ -766,7 +781,11 @@ function renderContas(lista) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${lista.map(c => `
+                    ${lista.map(c => {
+                        const numParcelas = c.parcela_numero && c.parcela_total 
+                            ? `${c.parcela_numero}/${c.parcela_total}` 
+                            : '-';
+                        return `
                         <tr class="${c.status === 'PAGO' ? 'row-pago' : ''}">
                             <td style="text-align: center;">
                                 <button class="check-btn ${c.status === 'PAGO' ? 'checked' : ''}" 
@@ -778,7 +797,7 @@ function renderContas(lista) {
                             <td>${c.descricao}</td>
                             <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
                             <td>${formatDate(c.data_vencimento)}</td>
-                            <td>${c.banco}</td>
+                            <td>${numParcelas}</td>
                             <td>${c.observacoes || '-'}</td>
                             <td>${c.data_pagamento ? formatDate(c.data_pagamento) : '-'}</td>
                             <td>${getStatusBadge(getStatusDinamico(c))}</td>
@@ -788,7 +807,7 @@ function renderContas(lista) {
                                 <button onclick="deleteConta('${c.id}')" class="action-btn delete">Excluir</button>
                             </td>
                         </tr>
-                    `).join('')}
+                    `}).join('')}
                 </tbody>
             </table>
         </div>
