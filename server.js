@@ -118,7 +118,7 @@ app.get('/api/contas/:id', verificarAutenticacao, async (req, res) => {
 // POST /api/contas
 app.post('/api/contas', verificarAutenticacao, async (req, res) => {
     try {
-        const { descricao, valor, data_vencimento, forma_pagamento, banco, data_pagamento, observacoes, parcela_numero, parcela_total } = req.body;
+        const { documento, descricao, valor, data_vencimento, forma_pagamento, banco, data_pagamento, observacoes, parcela_numero, parcela_total } = req.body;
 
         if (!descricao || !valor || !data_vencimento || !forma_pagamento || !banco) {
             return res.status(400).json({
@@ -128,6 +128,7 @@ app.post('/api/contas', verificarAutenticacao, async (req, res) => {
         }
 
         const novaConta = {
+            documento: documento || null,
             descricao,
             valor: parseFloat(valor),
             data_vencimento,
@@ -158,9 +159,10 @@ app.post('/api/contas', verificarAutenticacao, async (req, res) => {
 // PUT /api/contas/:id
 app.put('/api/contas/:id', verificarAutenticacao, async (req, res) => {
     try {
-        const { descricao, valor, data_vencimento, forma_pagamento, banco, data_pagamento, observacoes, parcela_numero, parcela_total, status } = req.body;
+        const { documento, descricao, valor, data_vencimento, forma_pagamento, banco, data_pagamento, observacoes, parcela_numero, parcela_total, status } = req.body;
 
         const contaAtualizada = {
+            documento: documento || null,
             descricao,
             valor: parseFloat(valor),
             data_vencimento,
