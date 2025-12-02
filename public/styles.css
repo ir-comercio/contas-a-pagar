@@ -345,6 +345,11 @@ input, select, textarea {
     color: var(--text-primary);
     font-size: 0.95rem;
     font-family: inherit;
+    text-transform: uppercase;
+}
+
+input::placeholder {
+    text-transform: none;
 }
 
 input:focus, select:focus, textarea:focus {
@@ -419,6 +424,9 @@ th {
     text-transform: uppercase;
     letter-spacing: 1px;
     border-bottom: 1px solid var(--th-border);
+    vertical-align: middle;
+    white-space: normal;
+    word-wrap: break-word;
 }
 
 td {
@@ -426,6 +434,9 @@ td {
     border-bottom: 1px solid var(--border-color);
     font-size: 0.9rem;
     color: var(--text-primary);
+    vertical-align: middle;
+    white-space: normal;
+    word-wrap: break-word;
 }
 
 tbody tr { background: var(--bg-card); }
