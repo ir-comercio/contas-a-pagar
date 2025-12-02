@@ -53,9 +53,7 @@ body {
     overflow-y: scroll;
 }
 
-/* ============================================
-   SPLASH SCREEN
-   ============================================ */
+/* SPLASH SCREEN */
 .splash-screen {
     position: fixed;
     top: 0;
@@ -101,7 +99,7 @@ body {
 .container {
     max-width: 1800px;
     margin: 2rem auto;
-    padding: 0 1.5rem 5rem 1.5rem; /* Adicionado padding-bottom para o botão flutuante */
+    padding: 0 1.5rem 5rem 1.5rem;
 }
 
 .card {
@@ -171,9 +169,7 @@ h1 {
     100% { box-shadow: 0 0 0 0 rgba(231, 0, 0, 0); }
 }
 
-/* ============================================
-   BOTÕES FLUTUANTES
-   ============================================ */
+/* BOTÃO FLUTUANTE */
 .floating-add-btn {
     position: fixed;
     bottom: 2rem;
@@ -205,41 +201,6 @@ h1 {
 }
 
 .floating-add-btn svg {
-    width: 28px;
-    height: 28px;
-}
-
-.floating-parcelas-btn {
-    position: fixed;
-    bottom: 9rem;
-    right: 2rem;
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: white;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(204, 112, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    z-index: 1000;
-    padding: 0;
-    margin: 0;
-}
-
-.floating-parcelas-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(204, 112, 0, 0.6);
-}
-
-.floating-parcelas-btn:active {
-    transform: scale(0.95);
-}
-
-.floating-parcelas-btn svg {
     width: 28px;
     height: 28px;
 }
@@ -280,10 +241,13 @@ h1 {
     color: var(--text-primary);
 }
 
-/* VALOR TOTAL E PENDENTE EM VERMELHO */
-.stat-value.stat-total,
-.stat-value.stat-pending {
+/* VALOR TOTAL E PENDENTE EM CORES ESPECÍFICAS */
+.stat-value.stat-total {
     color: #dc3545;
+}
+
+.stat-value.stat-pending {
+    color: #FF8C00;
 }
 
 .stat-value.stat-warning { color: var(--warning-color); }
@@ -293,11 +257,6 @@ h1 {
 .stat-card-alert.has-alert {
     border: 1px solid #dc3545;
     box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
-}
-
-.stat-card-warning.has-warning {
-    border: 1px solid var(--warning-color);
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
 }
 
 .pulse-badge {
@@ -316,7 +275,7 @@ h1 {
     font-weight: 700;
 }
 
-/* BOTÃO DE CHECKBOX - IDÊNTICO AO DE COTAÇÕES */
+/* BOTÃO DE CHECKBOX */
 .check-btn {
     background: var(--input-bg);
     border: 2px solid var(--border-color);
@@ -358,63 +317,6 @@ h1 {
 }
 
 /* FORMULÁRIO */
-.form-section {
-    margin-bottom: 2rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.form-section:last-of-type {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-
-.section-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--primary);
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--border-color);
-}
-
-.checkbox-group {
-    background: rgba(204, 112, 0, 0.05);
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(204, 112, 0, 0.2);
-    margin-bottom: 1.5rem;
-}
-
-.checkbox-group label {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    margin: 0;
-}
-
-.checkbox-group input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-.checkbox-group span {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.field-hint {
-    display: block;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-top: 0.5rem;
-    font-style: italic;
-}
-
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -450,66 +352,7 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--primary);
 }
 
-/* PARCELAMENTO */
-.modal-parcelas {
-    max-width: 1000px;
-}
-
-.tab-btn-add {
-    background: transparent;
-    border: none;
-    padding: 8px 16px;
-    color: var(--primary);
-    font-size: 1.5rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 8px;
-    margin-left: 0.5rem;
-}
-
-.tab-btn-add:hover {
-    background: rgba(204, 112, 0, 0.1);
-    transform: scale(1.1);
-}
-
-.parcela-info {
-    background: rgba(204, 112, 0, 0.1);
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(204, 112, 0, 0.3);
-    color: var(--text-primary);
-}
-
-.parcelas-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1rem;
-}
-
-.parcela-item {
-    background: var(--input-bg);
-    padding: 1.5rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.parcela-item h4 {
-    color: var(--primary);
-    margin-bottom: 1rem;
-    font-size: 1rem;
-}
-
-#parcelas-section {
-    margin-top: 1.5rem;
-    padding: 1.5rem;
-    background: rgba(204, 112, 0, 0.03);
-    border-radius: 8px;
-    border: 1px dashed var(--border-color);
-}
-
-/* BOTÕES - CANCELAR EM VERMELHO */
+/* BOTÕES */
 button {
     background: var(--primary);
     color: white;
@@ -601,7 +444,7 @@ tbody tr:hover { background: var(--table-hover); }
 
 .badge.pago { background: rgba(34, 197, 94, 0.2); color: #22C55E; border: 1px solid rgba(34, 197, 94, 0.3); }
 .badge.vencido { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); }
-.badge.pendente { background: rgba(59, 130, 246, 0.2); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge.pendente { background: rgba(255, 140, 0, 0.2); color: #FF8C00; border: 1px solid rgba(255, 140, 0, 0.3); }
 
 /* MENSAGENS FLUTUANTES */
 .floating-message {
@@ -771,7 +614,6 @@ tbody tr:hover { background: var(--table-hover); }
 }
 
 .hidden { display: none !important; }
-.button-wrapper { margin-bottom: 1.5rem; }
 
 /* NAVEGAÇÃO POR MESES */
 .month-navigation {
@@ -820,7 +662,7 @@ tbody tr:hover { background: var(--table-hover); }
     .container { padding: 0 1rem 5rem 1rem; margin: 1rem auto; }
     .header { flex-direction: column; align-items: flex-start; }
     h1 { font-size: 1.5rem; }
-    .splash-title { font-size: 1.3rem; margin-top: -8px; }
+    .splash-title { font-size: 1.3rem; }
     .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
     table { font-size: 0.85rem; }
     th, td { padding: 10px 8px; }
@@ -843,8 +685,5 @@ tbody tr:hover { background: var(--table-hover); }
     .floating-add-btn svg {
         width: 24px;
         height: 24px;
-    }
-    .parcelas-grid {
-        grid-template-columns: 1fr;
     }
 }
