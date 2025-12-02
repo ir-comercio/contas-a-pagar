@@ -206,8 +206,6 @@ function startPolling() {
 function updateDashboard() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const quinzeDias = new Date(hoje);
-    quinzeDias.setDate(quinzeDias.getDate() + 15);
     
     const contasDoMes = contas.filter(c => {
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
@@ -219,50 +217,35 @@ function updateDashboard() {
         .filter(c => c.status === 'PAGO')
         .reduce((sum, c) => sum + parseFloat(c.valor || 0), 0);
     
-    // Calcular contas vencidas
-    const vencido = contasDoMes.filter(c => {
+    // Calcular contas vencidas (inclui hoje)
+    const contasVencidas = contasDoMes.filter(c => {
         if (c.status === 'PAGO') return false;
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         dataVenc.setHours(0, 0, 0, 0);
-        return dataVenc < hoje;
-    }).length;
-    
-    // Calcular contas iminentes
-    const iminente = contasDoMes.filter(c => {
-        if (c.status === 'PAGO') return false;
-        const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
-        dataVenc.setHours(0, 0, 0, 0);
-        return dataVenc >= hoje && dataVenc <= quinzeDias;
-    }).length;
+        return dataVenc <= hoje; // <= inclui hoje
+    });
+    const qtdVencido = contasVencidas.length;
     
     // Calcular valor total
     const valorTotal = contasDoMes.reduce((sum, c) => sum + parseFloat(c.valor || 0), 0);
     
+    // Calcular pendente (valor total - valor pago)
+    const valorPendente = valorTotal - valorPago;
+    
     document.getElementById('statPagos').textContent = `R$ ${valorPago.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-    document.getElementById('statVencido').textContent = vencido;
-    document.getElementById('statIminente').textContent = iminente;
+    document.getElementById('statVencido').textContent = qtdVencido;
+    document.getElementById('statPendente').textContent = `R$ ${valorPendente.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     document.getElementById('statValorTotal').textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     
     const cardVencido = document.getElementById('cardVencido');
     const badgeVencido = document.getElementById('pulseBadgeVencido');
-    if (vencido > 0) {
+    if (qtdVencido > 0) {
         cardVencido.classList.add('has-alert');
         badgeVencido.style.display = 'flex';
-        badgeVencido.textContent = vencido;
+        badgeVencido.textContent = qtdVencido;
     } else {
         cardVencido.classList.remove('has-alert');
         badgeVencido.style.display = 'none';
-    }
-    
-    const cardIminente = document.getElementById('cardIminente');
-    const badgeIminente = document.getElementById('pulseBadgeIminente');
-    if (iminente > 0) {
-        cardIminente.classList.add('has-warning');
-        badgeIminente.style.display = 'flex';
-        badgeIminente.textContent = iminente;
-    } else {
-        cardIminente.classList.remove('has-warning');
-        badgeIminente.style.display = 'none';
     }
 }
 
@@ -296,6 +279,7 @@ function showFormModal(editingId) {
                     <div class="tabs-nav">
                         <button class="tab-btn active" onclick="switchFormTab(0)">Dados da Conta</button>
                         <button class="tab-btn" onclick="switchFormTab(1)">Pagamento</button>
+                        ${!isEditing ? '<button class="tab-btn" onclick="switchFormTab(2)">Parcelamento</button>' : ''}
                     </div>
 
                     <form id="contaForm" onsubmit="handleSubmit(event)">
@@ -314,12 +298,6 @@ function showFormModal(editingId) {
                                 <div class="form-group">
                                     <label for="data_vencimento">Vencimento *</label>
                                     <input type="date" id="data_vencimento" value="${conta?.data_vencimento || ''}" required>
-                                </div>
-                                <div class="form-group" style="grid-column: 1 / -1;">
-                                    <div class="checkbox-fixa-wrapper">
-                                        <input type="checkbox" id="fixa" ${conta?.fixa ? 'checked' : ''}>
-                                        <label for="fixa">Esta é uma conta fixa (se repetirá todos os meses)</label>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -356,6 +334,27 @@ function showFormModal(editingId) {
                             </div>
                         </div>
 
+                        ${!isEditing ? `
+                        <div class="tab-content" id="tab-parcelamento">
+                            <div class="form-grid">
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label>
+                                        <input type="checkbox" id="usar_parcelamento" onchange="toggleParcelamento()">
+                                        Dividir em parcelas
+                                    </label>
+                                </div>
+                                <div id="parcelamento-fields" style="display: none; grid-column: 1 / -1;">
+                                    <div class="form-group">
+                                        <label for="num_parcelas">Número de Parcelas *</label>
+                                        <input type="number" id="num_parcelas" min="2" max="60" value="2">
+                                    </div>
+                                    <button type="button" class="secondary" onclick="gerarParcelas()" style="margin-top: 1rem;">Gerar Parcelas</button>
+                                    <div id="parcelas-container" style="margin-top: 1.5rem;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+
                         <div class="modal-actions">
                             <button type="submit" class="save">Salvar</button>
                             <button type="button" class="danger" onclick="closeFormModal()">Cancelar</button>
@@ -380,6 +379,53 @@ function showFormModal(editingId) {
     setTimeout(() => document.getElementById('descricao')?.focus(), 100);
 }
 
+window.toggleParcelamento = function() {
+    const checkbox = document.getElementById('usar_parcelamento');
+    const fields = document.getElementById('parcelamento-fields');
+    if (fields) {
+        fields.style.display = checkbox.checked ? 'block' : 'none';
+    }
+};
+
+window.gerarParcelas = function() {
+    const numParcelas = parseInt(document.getElementById('num_parcelas')?.value) || 2;
+    const valorTotal = parseFloat(document.getElementById('valor')?.value) || 0;
+    const dataInicial = document.getElementById('data_vencimento')?.value;
+    
+    if (!valorTotal || !dataInicial) {
+        showMessage('Preencha o valor e data de vencimento primeiro!', 'error');
+        return;
+    }
+    
+    const valorParcela = (valorTotal / numParcelas).toFixed(2);
+    const container = document.getElementById('parcelas-container');
+    
+    let html = '<div class="parcelas-grid">';
+    
+    for (let i = 1; i <= numParcelas; i++) {
+        const data = new Date(dataInicial);
+        data.setMonth(data.getMonth() + (i - 1));
+        const dataFormatada = data.toISOString().split('T')[0];
+        
+        html += `
+            <div class="parcela-item">
+                <h4>${i}ª Parcela</h4>
+                <div class="form-group">
+                    <label>Data de Vencimento</label>
+                    <input type="date" id="parcela_data_${i}" value="${dataFormatada}" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" id="parcela_valor_${i}" step="0.01" min="0" value="${valorParcela}" required>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+};
+
 function closeFormModal() {
     const modal = document.getElementById('formModal');
     if (modal) {
@@ -403,6 +449,17 @@ window.switchFormTab = function(index) {
 async function handleSubmit(event) {
     event.preventDefault();
     
+    const editId = document.getElementById('editId').value;
+    const usarParcelamento = !editId && document.getElementById('usar_parcelamento')?.checked;
+    
+    if (usarParcelamento) {
+        await salvarParcelas();
+    } else {
+        await salvarConta(editId);
+    }
+}
+
+async function salvarConta(editId) {
     const formData = {
         descricao: document.getElementById('descricao').value.trim(),
         valor: parseFloat(document.getElementById('valor').value),
@@ -411,10 +468,10 @@ async function handleSubmit(event) {
         banco: document.getElementById('banco').value,
         data_pagamento: document.getElementById('data_pagamento').value || null,
         observacoes: document.getElementById('observacoes').value.trim() || null,
-        fixa: document.getElementById('fixa').checked
+        parcela_numero: null,
+        parcela_total: null
     };
 
-    const editId = document.getElementById('editId').value;
     if (editId) {
         const conta = contas.find(c => String(c.id) === String(editId));
         if (conta && !formData.data_pagamento) {
@@ -469,6 +526,85 @@ async function handleSubmit(event) {
             showMessage('Conta criada!', 'success');
         }
 
+        lastDataHash = JSON.stringify(contas.map(c => c.id));
+        updateAllFilters();
+        updateDashboard();
+        filterContas();
+        closeFormModal();
+    } catch (error) {
+        console.error('Erro:', error);
+        showMessage(`Erro: ${error.message}`, 'error');
+    }
+}
+
+async function salvarParcelas() {
+    const numParcelas = parseInt(document.getElementById('num_parcelas')?.value) || 2;
+    const descricaoBase = document.getElementById('descricao').value.trim();
+    const formaPagamento = document.getElementById('forma_pagamento').value;
+    const banco = document.getElementById('banco').value;
+    const observacoes = document.getElementById('observacoes').value.trim() || null;
+    
+    if (!isOnline) {
+        showMessage('Sistema offline. Dados não foram salvos.', 'error');
+        closeFormModal();
+        return;
+    }
+    
+    try {
+        const parcelas = [];
+        
+        for (let i = 1; i <= numParcelas; i++) {
+            const data = document.getElementById(`parcela_data_${i}`)?.value;
+            const valor = parseFloat(document.getElementById(`parcela_valor_${i}`)?.value);
+            
+            if (!data || !valor) {
+                showMessage(`Preencha todos os campos da ${i}ª parcela!`, 'error');
+                return;
+            }
+            
+            parcelas.push({
+                descricao: `${descricaoBase} - ${i}ª PARCELA`,
+                valor: valor,
+                data_vencimento: data,
+                data_pagamento: null,
+                forma_pagamento: formaPagamento,
+                banco: banco,
+                status: 'PENDENTE',
+                observacoes: observacoes,
+                parcela_numero: i,
+                parcela_total: numParcelas
+            });
+        }
+        
+        // Salvar todas as parcelas
+        for (const parcela of parcelas) {
+            const response = await fetch(`${API_URL}/contas`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Session-Token': sessionToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(parcela),
+                mode: 'cors'
+            });
+
+            if (response.status === 401) {
+                sessionStorage.removeItem('contasPagarSession');
+                mostrarTelaAcessoNegado('Sua sessão expirou');
+                return;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Erro ao salvar parcela');
+            }
+
+            const savedData = await response.json();
+            contas.push(savedData);
+        }
+        
+        showMessage(`${numParcelas} parcelas criadas com sucesso!`, 'success');
         lastDataHash = JSON.stringify(contas.map(c => c.id));
         updateAllFilters();
         updateDashboard();
@@ -596,6 +732,10 @@ window.viewConta = function(id) {
         return;
     }
 
+    const parcelaInfo = conta.parcela_numero && conta.parcela_total 
+        ? `<p><strong>Parcela:</strong> ${conta.parcela_numero}ª de ${conta.parcela_total}</p>` 
+        : '';
+
     const modal = `
         <div class="modal-overlay" id="viewModal">
             <div class="modal-content">
@@ -604,11 +744,11 @@ window.viewConta = function(id) {
                 </div>
                 <div class="info-section">
                     <p><strong>Descrição:</strong> ${conta.descricao}</p>
+                    ${parcelaInfo}
                     <p><strong>Valor:</strong> R$ ${parseFloat(conta.valor).toFixed(2)}</p>
                     <p><strong>Vencimento:</strong> ${formatDate(conta.data_vencimento)}</p>
                     <p><strong>Forma de Pagamento:</strong> ${conta.forma_pagamento}</p>
                     <p><strong>Banco:</strong> ${conta.banco}</p>
-                    <p><strong>Conta Fixa:</strong> ${conta.fixa ? 'Sim' : 'Não'}</p>
                     ${conta.data_pagamento ? `<p><strong>Data do Pagamento:</strong> ${formatDate(conta.data_pagamento)}</p>` : '<p><strong>Status:</strong> Não pago</p>'}
                     ${conta.observacoes ? `<p><strong>Observações:</strong> ${conta.observacoes}</p>` : ''}
                 </div>
@@ -654,15 +794,13 @@ function updateAllFilters() {
     // Analisar contas do mês atual para determinar status
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const quinze = new Date(hoje);
-    quinze.setDate(quinze.getDate() + 15);
     
     const contasDoMes = contas.filter(c => {
         const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
         return dataVenc.getMonth() === currentMonth && dataVenc.getFullYear() === currentYear;
     });
     
-    let temVencido = false, temIminente = false, temPago = false, temPendente = false;
+    let temVencido = false, temPago = false, temPendente = false;
     
     contasDoMes.forEach(c => {
         if (c.status === 'PAGO') {
@@ -671,10 +809,8 @@ function updateAllFilters() {
             const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
             dataVenc.setHours(0, 0, 0, 0);
             
-            if (dataVenc < hoje) {
+            if (dataVenc <= hoje) {
                 temVencido = true;
-            } else if (dataVenc <= quinze) {
-                temIminente = true;
             } else {
                 temPendente = true;
             }
@@ -687,7 +823,6 @@ function updateAllFilters() {
         statusSelect.innerHTML = '<option value="">Todos</option>';
         if (temPago) statusSelect.innerHTML += '<option value="PAGO">Pago</option>';
         if (temVencido) statusSelect.innerHTML += '<option value="VENCIDO">Vencido</option>';
-        if (temIminente) statusSelect.innerHTML += '<option value="IMINENTE">Iminente</option>';
         if (temPendente) statusSelect.innerHTML += '<option value="PENDENTE">Pendente</option>';
         statusSelect.value = val;
     }
@@ -727,8 +862,6 @@ function filterContas() {
     if (status) {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
-        const quinze = new Date(hoje);
-        quinze.setDate(quinze.getDate() + 15);
         
         const beforeFilter = filtered.length;
         
@@ -739,21 +872,14 @@ function filterContas() {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
-                return dataVenc < hoje;
-            }
-            
-            if (status === 'IMINENTE') {
-                if (c.status === 'PAGO') return false;
-                const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
-                dataVenc.setHours(0, 0, 0, 0);
-                return dataVenc >= hoje && dataVenc <= quinze;
+                return dataVenc <= hoje;
             }
             
             if (status === 'PENDENTE') {
                 if (c.status === 'PAGO') return false;
                 const dataVenc = new Date(c.data_vencimento + 'T00:00:00');
                 dataVenc.setHours(0, 0, 0, 0);
-                return dataVenc > quinze;
+                return dataVenc > hoje;
             }
             
             return true;
@@ -821,6 +947,9 @@ function renderContas(lista) {
                 <tbody>
                     ${lista.map(c => {
                         console.log('  ➜ Renderizando conta:', c.id, c.descricao);
+                        const dataPagamentoInfo = c.status === 'PAGO' && c.data_pagamento 
+                            ? `<br><small style="color: var(--success-color);">Pago em: ${formatDate(c.data_pagamento)}</small>` 
+                            : '';
                         return `
                         <tr class="${c.status === 'PAGO' ? 'row-pago' : ''}">
                             <td style="text-align: center;">
@@ -830,7 +959,7 @@ function renderContas(lista) {
                                         ✓
                                 </button>
                             </td>
-                            <td>${c.descricao}${c.fixa ? ' <strong>(Fixa)</strong>' : ''}</td>
+                            <td>${c.descricao}${dataPagamentoInfo}</td>
                             <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
                             <td>${formatDate(c.data_vencimento)}</td>
                             <td>${c.banco}</td>
@@ -866,10 +995,7 @@ function getStatusDinamico(conta) {
     hoje.setHours(0, 0, 0, 0);
     const dataVenc = new Date(conta.data_vencimento + 'T00:00:00');
     dataVenc.setHours(0, 0, 0, 0);
-    if (dataVenc < hoje) return 'VENCIDO';
-    const quinze = new Date(hoje);
-    quinze.setDate(quinze.getDate() + 15);
-    if (dataVenc <= quinze) return 'IMINENTE';
+    if (dataVenc <= hoje) return 'VENCIDO';
     return 'PENDENTE';
 }
 
@@ -877,7 +1003,6 @@ function getStatusBadge(status) {
     const map = {
         'PAGO': { class: 'pago', text: 'Pago' },
         'VENCIDO': { class: 'vencido', text: 'Vencido' },
-        'IMINENTE': { class: 'iminente', text: 'Iminente' },
         'PENDENTE': { class: 'pendente', text: 'Pendente' }
     };
     const s = map[status] || { class: 'pendente', text: status };
