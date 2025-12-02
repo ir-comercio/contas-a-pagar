@@ -275,89 +275,93 @@ function showFormModal(editingId) {
                     <h3 class="modal-title">${isEditing ? 'Editar Conta' : 'Nova Conta'}</h3>
                 </div>
                 
-                <form id="contaForm" onsubmit="handleSubmit(event)">
-                    <input type="hidden" id="editId" value="${editingId || ''}">
-                    
-                    <div class="form-section">
-                        <h4 class="section-title">Dados da Conta</h4>
-                        
-                        ${!isEditing ? `
-                        <div class="form-group checkbox-group">
-                            <label>
-                                <input type="checkbox" id="usar_parcelas" onchange="toggleParcelas()">
-                                <span>Esta conta será parcelada</span>
-                            </label>
-                        </div>
-                        ` : ''}
-                        
-                        <div class="form-grid">
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                <label for="descricao">Descrição *</label>
-                                <input type="text" id="descricao" value="${conta?.descricao || ''}" required>
-                                <small class="field-hint">Para parcelas, ex: "CARTÃO NUBANK" gerará "CARTÃO NUBANK - 1ª PARCELA"</small>
-                            </div>
-                            
-                            <div class="form-group" id="grupo-valor">
-                                <label for="valor">Valor (R$) *</label>
-                                <input type="number" id="valor" step="0.01" min="0" value="${conta?.valor || ''}" required>
-                            </div>
-                            
-                            <div class="form-group" id="grupo-vencimento">
-                                <label for="data_vencimento">Vencimento *</label>
-                                <input type="date" id="data_vencimento" value="${conta?.data_vencimento || ''}" required>
-                            </div>
-                        </div>
-                        
-                        <div id="parcelas-section" style="display: none;">
-                            <div class="form-group">
-                                <label for="num_parcelas">Número de Parcelas *</label>
-                                <input type="number" id="num_parcelas" min="2" max="60" value="2">
-                            </div>
-                            <button type="button" class="secondary" onclick="gerarCamposParcelas()">
-                                Gerar Campos das Parcelas
-                            </button>
-                            <div id="parcelas-container" style="margin-top: 1.5rem;"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-section">
-                        <h4 class="section-title">Dados de Pagamento</h4>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="forma_pagamento">Forma de Pagamento *</label>
-                                <select id="forma_pagamento" required>
-                                    <option value="">Selecione...</option>
-                                    <option value="BOLETO" ${conta?.forma_pagamento === 'BOLETO' ? 'selected' : ''}>Boleto</option>
-                                    <option value="CARTAO" ${conta?.forma_pagamento === 'CARTAO' ? 'selected' : ''}>Cartão</option>
-                                    <option value="DINHEIRO" ${conta?.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>Dinheiro</option>
-                                    <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>Transferência</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="banco">Banco *</label>
-                                <select id="banco" required>
-                                    <option value="">Selecione...</option>
-                                    <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>Banco do Brasil</option>
-                                    <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>Bradesco</option>
-                                    <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>Sicoob</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="grupo-data-pagamento">
-                                <label for="data_pagamento">Data do Pagamento</label>
-                                <input type="date" id="data_pagamento" value="${conta?.data_pagamento || ''}">
-                            </div>
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                <label for="observacoes">Observações</label>
-                                <input type="text" id="observacoes" value="${conta?.observacoes || ''}">
-                            </div>
-                        </div>
+                <div class="tabs-container">
+                    <div class="tabs-nav">
+                        <button class="tab-btn active" onclick="switchFormTab(0)">Dados da Conta</button>
+                        <button class="tab-btn" onclick="switchFormTab(1)">Pagamento</button>
                     </div>
 
-                    <div class="modal-actions">
-                        <button type="submit" class="save">Salvar</button>
-                        <button type="button" class="danger" onclick="closeFormModal()">Cancelar</button>
-                    </div>
-                </form>
+                    <form id="contaForm" onsubmit="handleSubmit(event)">
+                        <input type="hidden" id="editId" value="${editingId || ''}">
+                        
+                        <div class="tab-content active" id="tab-conta">
+                            ${!isEditing ? `
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="usar_parcelas" onchange="toggleParcelas()">
+                                    <span>Esta conta será parcelada</span>
+                                </label>
+                            </div>
+                            ` : ''}
+                            
+                            <div class="form-grid">
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label for="descricao">Descrição *</label>
+                                    <input type="text" id="descricao" value="${conta?.descricao || ''}" required>
+                                    <small class="field-hint">Para parcelas, ex: "CARTÃO NUBANK" gerará "CARTÃO NUBANK - 1ª PARCELA"</small>
+                                </div>
+                                
+                                <div class="form-group" id="grupo-valor">
+                                    <label for="valor">Valor (R$) *</label>
+                                    <input type="number" id="valor" step="0.01" min="0" value="${conta?.valor || ''}" required>
+                                </div>
+                                
+                                <div class="form-group" id="grupo-vencimento">
+                                    <label for="data_vencimento">Vencimento *</label>
+                                    <input type="date" id="data_vencimento" value="${conta?.data_vencimento || ''}" required>
+                                </div>
+                            </div>
+                            
+                            <div id="parcelas-section" style="display: none;">
+                                <div class="form-group">
+                                    <label for="num_parcelas">Número de Parcelas *</label>
+                                    <input type="number" id="num_parcelas" min="2" max="60" value="2">
+                                </div>
+                                <button type="button" class="secondary" onclick="gerarCamposParcelas()">
+                                    Gerar Campos das Parcelas
+                                </button>
+                                <div id="parcelas-container" style="margin-top: 1.5rem;"></div>
+                            </div>
+                        </div>
+
+                        <div class="tab-content" id="tab-pagamento">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="forma_pagamento">Forma de Pagamento *</label>
+                                    <select id="forma_pagamento" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="BOLETO" ${conta?.forma_pagamento === 'BOLETO' ? 'selected' : ''}>Boleto</option>
+                                        <option value="CARTAO" ${conta?.forma_pagamento === 'CARTAO' ? 'selected' : ''}>Cartão</option>
+                                        <option value="DINHEIRO" ${conta?.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>Dinheiro</option>
+                                        <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>Transferência</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="banco">Banco *</label>
+                                    <select id="banco" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>Banco do Brasil</option>
+                                        <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>Bradesco</option>
+                                        <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>Sicoob</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="grupo-data-pagamento">
+                                    <label for="data_pagamento">Data do Pagamento</label>
+                                    <input type="date" id="data_pagamento" value="${conta?.data_pagamento || ''}">
+                                </div>
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label for="observacoes">Observações</label>
+                                    <input type="text" id="observacoes" value="${conta?.observacoes || ''}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="submit" class="save">Salvar</button>
+                            <button type="button" class="danger" onclick="closeFormModal()">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     `;
@@ -375,6 +379,15 @@ function showFormModal(editingId) {
     
     setTimeout(() => document.getElementById('descricao')?.focus(), 100);
 }
+
+window.switchFormTab = function(index) {
+    document.querySelectorAll('#formModal .tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+    });
+    document.querySelectorAll('#formModal .tab-content').forEach((content, i) => {
+        content.classList.toggle('active', i === index);
+    });
+};
 
 window.toggleParcelas = function() {
     const usarParcelas = document.getElementById('usar_parcelas')?.checked || false;
