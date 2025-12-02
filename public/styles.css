@@ -411,12 +411,13 @@ table {
     border-radius: 8px;
     overflow: hidden;
     margin-top: 1rem;
+    table-layout: auto;
 }
 
 thead { background: var(--th-bg); }
 
 th {
-    padding: 16px 20px;
+    padding: 16px 12px;
     text-align: left;
     font-weight: 700;
     color: var(--th-color);
@@ -427,17 +428,41 @@ th {
     vertical-align: middle;
     white-space: normal;
     word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 td {
-    padding: 14px 20px;
+    padding: 14px 12px;
     border-bottom: 1px solid var(--border-color);
     font-size: 0.9rem;
     color: var(--text-primary);
     vertical-align: middle;
     white-space: normal;
     word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 200px;
 }
+
+/* Colunas específicas com larguras adaptativas */
+td:nth-child(1) { max-width: 60px; text-align: center; }  /* Checkbox */
+td:nth-child(2) { max-width: 250px; }  /* Descrição */
+td:nth-child(3) { max-width: 120px; white-space: nowrap; }  /* Valor */
+td:nth-child(4) { max-width: 120px; white-space: nowrap; }  /* Vencimento */
+td:nth-child(5) { max-width: 100px; text-align: center; }  /* Nº Parcelas */
+td:nth-child(6) { max-width: 200px; }  /* Observação */
+td:nth-child(7) { max-width: 120px; white-space: nowrap; }  /* Data Pagamento */
+td:nth-child(8) { max-width: 100px; white-space: nowrap; }  /* Status */
+td:nth-child(9) { min-width: 260px; white-space: nowrap; }  /* Ações */
+
+th:nth-child(1) { width: 60px; }  /* Checkbox header */
+th:nth-child(3) { width: 120px; }  /* Valor header */
+th:nth-child(4) { width: 120px; }  /* Vencimento header */
+th:nth-child(5) { width: 100px; text-align: center; }  /* Nº Parcelas header */
+th:nth-child(7) { width: 120px; }  /* Data Pagamento header */
+th:nth-child(8) { width: 100px; }  /* Status header */
+th:nth-child(9) { width: 260px; text-align: center; }  /* Ações header */
 
 tbody tr { background: var(--bg-card); }
 tbody tr:nth-child(even) { background: var(--table-stripe); }
@@ -675,8 +700,23 @@ tbody tr:hover { background: var(--table-hover); }
     h1 { font-size: 1.5rem; }
     .splash-title { font-size: 1.3rem; }
     .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-    table { font-size: 0.85rem; }
-    th, td { padding: 10px 8px; }
+    
+    /* Tabela responsiva sem scroll */
+    table { font-size: 0.8rem; }
+    th, td { padding: 8px 6px; }
+    
+    /* Ajustar larguras para mobile */
+    td:nth-child(2) { max-width: 150px; font-size: 0.75rem; }  /* Descrição menor */
+    td:nth-child(6) { max-width: 120px; font-size: 0.75rem; }  /* Observação menor */
+    td:nth-child(9) { min-width: 200px; }  /* Ações */
+    
+    .action-btn { 
+        padding: 6px 8px; 
+        font-size: 0.75rem;
+        margin: 2px;
+        min-width: 50px;
+    }
+    
     button { padding: 10px 16px; font-size: 0.9rem; }
     .form-grid { grid-template-columns: 1fr; }
     .modal-content { padding: 1.5rem; width: 95%; }
@@ -685,7 +725,6 @@ tbody tr:hover { background: var(--table-hover); }
     .filter-section { grid-template-columns: 1fr; }
     .tabs-nav { flex-wrap: nowrap; }
     .tab-btn { font-size: 0.8rem; padding: 10px 15px; }
-    .actions-cell { min-width: auto; }
     .month-navigation { gap: 1rem; }
     .floating-add-btn {
         width: 56px;
