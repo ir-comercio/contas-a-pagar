@@ -765,52 +765,50 @@ function renderContas(lista) {
     }
 
     const table = `
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="text-align: center; width: 60px;"> </th>
-                        <th>Descrição</th>
-                        <th>Valor</th>
-                        <th>Vencimento</th>
-                        <th>Nº Parcelas</th>
-                        <th>Observação</th>
-                        <th>Data Pagamento</th>
-                        <th>Status</th>
-                        <th style="text-align: center; min-width: 260px;">Ações</th>
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align: center; width: 60px;"> </th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th style="text-align: center;">Nº Parcelas</th>
+                    <th>Observação</th>
+                    <th>Data Pagamento</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${lista.map(c => {
+                    const numParcelas = c.parcela_numero && c.parcela_total 
+                        ? `${c.parcela_numero}/${c.parcela_total}` 
+                        : '-';
+                    return `
+                    <tr class="${c.status === 'PAGO' ? 'row-pago' : ''}">
+                        <td style="text-align: center;">
+                            <button class="check-btn ${c.status === 'PAGO' ? 'checked' : ''}" 
+                                    onclick="togglePago('${c.id}')" 
+                                    title="${c.status === 'PAGO' ? 'Marcar como pendente' : 'Marcar como pago'}">
+                                    ✓
+                            </button>
+                        </td>
+                        <td>${c.descricao}</td>
+                        <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
+                        <td>${formatDate(c.data_vencimento)}</td>
+                        <td style="text-align: center;">${numParcelas}</td>
+                        <td>${c.observacoes || '-'}</td>
+                        <td>${c.data_pagamento ? formatDate(c.data_pagamento) : '-'}</td>
+                        <td>${getStatusBadge(getStatusDinamico(c))}</td>
+                        <td class="actions-cell" style="text-align: center;">
+                            <button onclick="viewConta('${c.id}')" class="action-btn view">Ver</button>
+                            <button onclick="editConta('${c.id}')" class="action-btn edit">Editar</button>
+                            <button onclick="deleteConta('${c.id}')" class="action-btn delete">Excluir</button>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    ${lista.map(c => {
-                        const numParcelas = c.parcela_numero && c.parcela_total 
-                            ? `${c.parcela_numero}/${c.parcela_total}` 
-                            : '-';
-                        return `
-                        <tr class="${c.status === 'PAGO' ? 'row-pago' : ''}">
-                            <td style="text-align: center;">
-                                <button class="check-btn ${c.status === 'PAGO' ? 'checked' : ''}" 
-                                        onclick="togglePago('${c.id}')" 
-                                        title="${c.status === 'PAGO' ? 'Marcar como pendente' : 'Marcar como pago'}">
-                                        ✓
-                                </button>
-                            </td>
-                            <td>${c.descricao}</td>
-                            <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
-                            <td>${formatDate(c.data_vencimento)}</td>
-                            <td>${numParcelas}</td>
-                            <td>${c.observacoes || '-'}</td>
-                            <td>${c.data_pagamento ? formatDate(c.data_pagamento) : '-'}</td>
-                            <td>${getStatusBadge(getStatusDinamico(c))}</td>
-                            <td class="actions-cell" style="text-align: center;">
-                                <button onclick="viewConta('${c.id}')" class="action-btn view">Ver</button>
-                                <button onclick="editConta('${c.id}')" class="action-btn edit">Editar</button>
-                                <button onclick="deleteConta('${c.id}')" class="action-btn delete">Excluir</button>
-                            </td>
-                        </tr>
-                    `}).join('')}
-                </tbody>
-            </table>
-        </div>
+                `}).join('')}
+            </tbody>
+        </table>
     `;
     
     container.innerHTML = table;
