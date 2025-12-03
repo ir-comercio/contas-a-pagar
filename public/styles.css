@@ -324,8 +324,47 @@ h1 {
     margin-bottom: 1.5rem;
 }
 
-.form-group {
+/* LAYOUT COMPACTO - Campos lado a lado */
+.form-grid-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     margin-bottom: 1rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+/* Larguras especiais */
+.form-group-wide {
+    grid-column: span 2;
+}
+
+.form-group-full {
+    grid-column: 1 / -1;
+}
+
+/* Ajuste para 2 campos */
+.form-row:has(.form-group:nth-child(2):last-child) {
+    grid-template-columns: 1fr 1fr;
+}
+
+/* Ajuste para 3 campos */
+.form-row:has(.form-group:nth-child(3):last-child) {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Ajuste para 4 campos */
+.form-row:has(.form-group:nth-child(4):last-child) {
+    grid-template-columns: repeat(4, 1fr);
 }
 
 label {
@@ -711,6 +750,54 @@ tbody tr:hover { background: var(--table-hover); }
     line-height: 1.6;
 }
 
+/* GRID DE INFORMAÇÕES - Modal Ver */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    background: var(--input-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.info-item-full {
+    grid-column: 1 / -1;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.info-highlight {
+    color: var(--success-color);
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.modal-view {
+    max-width: 800px;
+}
+
 .hidden { display: none !important; }
 
 /* NAVEGAÇÃO POR MESES */
@@ -781,6 +868,16 @@ tbody tr:hover { background: var(--table-hover); }
     
     button { padding: 10px 16px; font-size: 0.9rem; }
     .form-grid { grid-template-columns: 1fr; }
+    
+    /* Layout compacto em mobile - empilhar campos */
+    .form-row {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .form-group-wide {
+        grid-column: 1;
+    }
+    
     .modal-content { padding: 1.5rem; width: 95%; }
     .modal-actions { flex-direction: column-reverse; }
     .modal-actions button { width: 100%; }
