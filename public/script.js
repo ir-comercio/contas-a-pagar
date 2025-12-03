@@ -298,64 +298,77 @@ function renderSimpleForm(conta, editingId, isEditing) {
                 <input type="hidden" id="formType" value="simple">
                 
                 <div class="tab-content active" id="tab-conta">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="documento">NF / Documento</label>
-                            <input type="text" id="documento" value="${conta?.documento || ''}" placeholder="NF, CTE...">
+                    <div class="form-grid-compact">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="documento">NF / Documento</label>
+                                <input type="text" id="documento" value="${conta?.documento || ''}" placeholder="NF, CTE...">
+                            </div>
+                            
+                            <div class="form-group form-group-wide">
+                                <label for="descricao">Descrição *</label>
+                                <input type="text" id="descricao" value="${conta?.descricao || ''}" required>
+                            </div>
                         </div>
                         
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="descricao">Descrição *</label>
-                            <input type="text" id="descricao" value="${conta?.descricao || ''}" required>
-                        </div>
-                        
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="observacoes">Observação</label>
-                            <input type="text" id="observacoes" value="${conta?.observacoes || ''}">
+                        <div class="form-row">
+                            <div class="form-group form-group-full">
+                                <label for="observacoes">Observação</label>
+                                <input type="text" id="observacoes" value="${conta?.observacoes || ''}">
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="tab-content" id="tab-pagamento">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="forma_pagamento">Forma de Pagamento *</label>
-                            <select id="forma_pagamento" required>
-                                <option value="">Selecione...</option>
-                                <option value="PIX" ${conta?.forma_pagamento === 'PIX' ? 'selected' : ''}>Pix</option>
-                                <option value="BOLETO" ${conta?.forma_pagamento === 'BOLETO' ? 'selected' : ''}>Boleto</option>
-                                <option value="CARTAO" ${conta?.forma_pagamento === 'CARTAO' ? 'selected' : ''}>Cartão</option>
-                                <option value="DINHEIRO" ${conta?.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>Dinheiro</option>
-                                <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>Transferência</option>
-                            </select>
+                    <div class="form-grid-compact">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="forma_pagamento">Forma de Pagamento *</label>
+                                <select id="forma_pagamento" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="PIX" ${conta?.forma_pagamento === 'PIX' ? 'selected' : ''}>Pix</option>
+                                    <option value="BOLETO" ${conta?.forma_pagamento === 'BOLETO' ? 'selected' : ''}>Boleto</option>
+                                    <option value="CARTAO" ${conta?.forma_pagamento === 'CARTAO' ? 'selected' : ''}>Cartão</option>
+                                    <option value="DINHEIRO" ${conta?.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>Dinheiro</option>
+                                    <option value="TRANSFERENCIA" ${conta?.forma_pagamento === 'TRANSFERENCIA' ? 'selected' : ''}>Transferência</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="banco">Banco *</label>
+                                <select id="banco" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>Banco do Brasil</option>
+                                    <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>Bradesco</option>
+                                    <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>Sicoob</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="banco">Banco *</label>
-                            <select id="banco" required>
-                                <option value="">Selecione...</option>
-                                <option value="BANCO DO BRASIL" ${conta?.banco === 'BANCO DO BRASIL' ? 'selected' : ''}>Banco do Brasil</option>
-                                <option value="BRADESCO" ${conta?.banco === 'BRADESCO' ? 'selected' : ''}>Bradesco</option>
-                                <option value="SICOOB" ${conta?.banco === 'SICOOB' ? 'selected' : ''}>Sicoob</option>
-                            </select>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="data_vencimento">Data de Vencimento *</label>
+                                <input type="date" id="data_vencimento" value="${conta?.data_vencimento || ''}" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="valor">Valor (R$) *</label>
+                                <input type="number" id="valor" step="0.01" min="0" value="${conta?.valor || ''}" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="data_pagamento">Data do Pagamento</label>
+                                <input type="date" id="data_pagamento" value="${conta?.data_pagamento || ''}">
+                            </div>
+                            
+                            ${isEditing ? `
+                            <div class="form-group">
+                                <label for="num_parcela">Nº Parcelas</label>
+                                <input type="text" id="num_parcela" value="${numParcela}" placeholder="1/1" readonly>
+                            </div>
+                            ` : ''}
                         </div>
-                        <div class="form-group">
-                            <label for="data_vencimento">Data de Vencimento *</label>
-                            <input type="date" id="data_vencimento" value="${conta?.data_vencimento || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="valor">Valor (R$) *</label>
-                            <input type="number" id="valor" step="0.01" min="0" value="${conta?.valor || ''}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="data_pagamento">Data do Pagamento</label>
-                            <input type="date" id="data_pagamento" value="${conta?.data_pagamento || ''}">
-                        </div>
-                        ${isEditing ? `
-                        <div class="form-group">
-                            <label for="num_parcela">Nº Parcelas</label>
-                            <input type="text" id="num_parcela" value="${numParcela}" placeholder="1/1" readonly>
-                        </div>
-                        ` : ''}
                     </div>
                 </div>
 
@@ -381,44 +394,51 @@ function renderParceladoForm() {
                 <input type="hidden" id="formType" value="parcelado">
                 
                 <div class="tab-content active" id="tab-conta">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="documento">NF / Documento</label>
-                            <input type="text" id="documento" value="" placeholder="NF, CTE...">
+                    <div class="form-grid-compact">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="documento">NF / Documento</label>
+                                <input type="text" id="documento" value="" placeholder="NF, CTE...">
+                            </div>
+                            
+                            <div class="form-group form-group-wide">
+                                <label for="descricao">Descrição *</label>
+                                <input type="text" id="descricao" value="" required>
+                            </div>
                         </div>
                         
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="descricao">Descrição *</label>
-                            <input type="text" id="descricao" value="" required>
-                        </div>
-                        
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="observacoes">Observação</label>
-                            <input type="text" id="observacoes" value="">
+                        <div class="form-row">
+                            <div class="form-group form-group-full">
+                                <label for="observacoes">Observação</label>
+                                <input type="text" id="observacoes" value="">
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="tab-content" id="tab-pagamento">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="forma_pagamento">Forma de Pagamento *</label>
-                            <select id="forma_pagamento" required>
-                                <option value="">Selecione...</option>
-                                <option value="BOLETO">Boleto</option>
-                                <option value="CARTAO">Cartão</option>
-                                <option value="DINHEIRO">Dinheiro</option>
-                                <option value="TRANSFERENCIA">Transferência</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="banco">Banco *</label>
-                            <select id="banco" required>
-                                <option value="">Selecione...</option>
-                                <option value="BANCO DO BRASIL">Banco do Brasil</option>
-                                <option value="BRADESCO">Bradesco</option>
-                                <option value="SICOOB">Sicoob</option>
-                            </select>
+                    <div class="form-grid-compact">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="forma_pagamento">Forma de Pagamento *</label>
+                                <select id="forma_pagamento" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="BOLETO">Boleto</option>
+                                    <option value="CARTAO">Cartão</option>
+                                    <option value="DINHEIRO">Dinheiro</option>
+                                    <option value="TRANSFERENCIA">Transferência</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="banco">Banco *</label>
+                                <select id="banco" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="BANCO DO BRASIL">Banco do Brasil</option>
+                                    <option value="BRADESCO">Bradesco</option>
+                                    <option value="SICOOB">Sicoob</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -474,14 +494,16 @@ window.addParcelaTab = function() {
     parcelaContent.id = `tab-parcela-${numParcelas}`;
     parcelaContent.setAttribute('data-parcela-num', numParcelas);
     parcelaContent.innerHTML = `
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="parcela_vencimento_${numParcelas}">Data de Vencimento *</label>
-                <input type="date" id="parcela_vencimento_${numParcelas}" class="parcela-field" required>
-            </div>
-            <div class="form-group">
-                <label for="parcela_valor_${numParcelas}">Valor (R$) *</label>
-                <input type="number" id="parcela_valor_${numParcelas}" step="0.01" min="0" class="parcela-field" required>
+        <div class="form-grid-compact">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="parcela_vencimento_${numParcelas}">Data de Vencimento *</label>
+                    <input type="date" id="parcela_vencimento_${numParcelas}" class="parcela-field" required>
+                </div>
+                <div class="form-group">
+                    <label for="parcela_valor_${numParcelas}">Valor (R$) *</label>
+                    <input type="number" id="parcela_valor_${numParcelas}" step="0.01" min="0" class="parcela-field" required>
+                </div>
             </div>
         </div>
     `;
@@ -946,29 +968,66 @@ window.viewConta = function(id) {
     }
 
     const parcelaInfo = conta.parcela_numero && conta.parcela_total 
-        ? `<p><strong>Parcela:</strong> ${conta.parcela_numero}ª de ${conta.parcela_total}</p>` 
+        ? `
+        <div class="info-item">
+            <span class="info-label">Parcela:</span>
+            <span class="info-value">${conta.parcela_numero}ª de ${conta.parcela_total}</span>
+        </div>
+        ` 
         : '';
 
     const documentoInfo = conta.documento 
-        ? `<p><strong>Documento:</strong> ${conta.documento}</p>` 
+        ? `
+        <div class="info-item">
+            <span class="info-label">Documento:</span>
+            <span class="info-value">${conta.documento}</span>
+        </div>
+        ` 
+        : '';
+
+    const observacoesInfo = conta.observacoes 
+        ? `
+        <div class="info-item info-item-full">
+            <span class="info-label">Observações:</span>
+            <span class="info-value">${conta.observacoes}</span>
+        </div>
+        ` 
         : '';
 
     const modal = `
         <div class="modal-overlay" id="viewModal">
-            <div class="modal-content">
+            <div class="modal-content modal-view">
                 <div class="modal-header">
                     <h3 class="modal-title">Detalhes da Conta</h3>
                 </div>
-                <div class="info-section">
+                <div class="info-grid">
                     ${documentoInfo}
-                    <p><strong>Descrição:</strong> ${conta.descricao}</p>
+                    <div class="info-item info-item-full">
+                        <span class="info-label">Descrição:</span>
+                        <span class="info-value">${conta.descricao}</span>
+                    </div>
                     ${parcelaInfo}
-                    <p><strong>Valor:</strong> R$ ${parseFloat(conta.valor).toFixed(2)}</p>
-                    <p><strong>Vencimento:</strong> ${formatDate(conta.data_vencimento)}</p>
-                    <p><strong>Forma de Pagamento:</strong> ${conta.forma_pagamento}</p>
-                    <p><strong>Banco:</strong> ${conta.banco}</p>
-                    ${conta.data_pagamento ? `<p><strong>Data do Pagamento:</strong> ${formatDate(conta.data_pagamento)}</p>` : '<p><strong>Status:</strong> Não pago</p>'}
-                    ${conta.observacoes ? `<p><strong>Observações:</strong> ${conta.observacoes}</p>` : ''}
+                    <div class="info-item">
+                        <span class="info-label">Valor:</span>
+                        <span class="info-value info-highlight">R$ ${parseFloat(conta.valor).toFixed(2)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Vencimento:</span>
+                        <span class="info-value">${formatDate(conta.data_vencimento)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Forma de Pagamento:</span>
+                        <span class="info-value">${conta.forma_pagamento}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Banco:</span>
+                        <span class="info-value">${conta.banco}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">${conta.data_pagamento ? 'Data do Pagamento:' : 'Status:'}</span>
+                        <span class="info-value">${conta.data_pagamento ? formatDate(conta.data_pagamento) : 'Não pago'}</span>
+                    </div>
+                    ${observacoesInfo}
                 </div>
                 <div class="modal-actions">
                     <button class="secondary" onclick="closeViewModal()">Fechar</button>
