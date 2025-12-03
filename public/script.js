@@ -405,7 +405,6 @@ function renderParceladoForm() {
                             <label for="forma_pagamento">Forma de Pagamento *</label>
                             <select id="forma_pagamento" required>
                                 <option value="">Selecione...</option>
-                                <option value="PIX">Pix</option>
                                 <option value="BOLETO">Boleto</option>
                                 <option value="CARTAO">Cartão</option>
                                 <option value="DINHEIRO">Dinheiro</option>
@@ -594,20 +593,40 @@ async function handleSubmitParcelado(event) {
         return;
     }
     
+    // Validar campos comuns
+    const descricao = document.getElementById('descricao')?.value?.trim();
+    const formaPagamento = document.getElementById('forma_pagamento')?.value;
+    const banco = document.getElementById('banco')?.value;
+
+    if (!descricao || !formaPagamento || !banco) {
+        showMessage('Por favor, preencha todos os campos obrigatórios das abas 1 e 2.', 'error');
+        return;
+    }
+
     // Coletar dados comuns
     const dadosComuns = {
-        documento: document.getElementById('documento').value.trim() || null,
-        descricao: document.getElementById('descricao').value.trim(),
-        observacoes: document.getElementById('observacoes').value.trim() || null,
-        forma_pagamento: document.getElementById('forma_pagamento').value,
-        banco: document.getElementById('banco').value,
+        documento: document.getElementById('documento')?.value?.trim() || null,
+        descricao: descricao,
+        observacoes: document.getElementById('observacoes')?.value?.trim() || null,
+        forma_pagamento: formaPagamento,
+        banco: banco,
     };
     
-    // Coletar dados de cada parcela
+    // Coletar e validar dados de cada parcela
     const parcelas = [];
     for (let i = 1; i <= numParcelas; i++) {
         const vencimento = document.getElementById(`parcela_vencimento_${i}`);
         const valor = document.getElementById(`parcela_valor_${i}`);
+        
+        if (!vencimento || !vencimento.value) {
+            showMessage(`Parcela ${i}: Data de vencimento não preenchida!`, 'error');
+            return;
+        }
+        
+        if (!valor || !valor.value || parseFloat(valor.value) <= 0) {
+            showMessage(`Parcela ${i}: Valor inválido!`, 'error');
+            return;
+        }
         
         if (vencimento && valor) {
             parcelas.push({
@@ -636,60 +655,100 @@ async function handleSubmitParcelado(event) {
     // Salvar todas as parcelas
     try {
         let sucessos = 0;
+        let erros = [];
         
-        for (const parcela of parcelas) {
-            const response = await fetch(`${API_URL}/contas`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Session-Token': sessionToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(parcela),
-                mode: 'cors'
-            });
+        for (const [index, parcela] of parcelas.entries()) {
+            try {
+                console.log(`Enviando parcela ${index + 1}:`, parcela); // Debug
 
-            if (response.status === 401) {
-                sessionStorage.removeItem('contasPagarSession');
-                mostrarTelaAcessoNegado('Sua sessão expirou');
-                return;
-            }
+                const response = await fetch(`${API_URL}/contas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-Token': sessionToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(parcela),
+                    mode: 'cors'
+                });
 
-            if (response.ok) {
-                const savedData = await response.json();
-                contas.push(savedData);
-                sucessos++;
+                if (response.status === 401) {
+                    sessionStorage.removeItem('contasPagarSession');
+                    mostrarTelaAcessoNegado('Sua sessão expirou');
+                    return;
+                }
+
+                if (response.ok) {
+                    const savedData = await response.json();
+                    contas.push(savedData);
+                    sucessos++;
+                } else {
+                    let errorMsg = 'Erro desconhecido';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.error || errorData.message || `Erro ${response.status}`;
+                    } catch (e) {
+                        errorMsg = `Erro ${response.status}: ${response.statusText}`;
+                    }
+                    erros.push(`Parcela ${index + 1}: ${errorMsg}`);
+                }
+            } catch (error) {
+                console.error(`Erro na parcela ${index + 1}:`, error);
+                erros.push(`Parcela ${index + 1}: ${error.message}`);
             }
         }
         
         if (sucessos === parcelas.length) {
             showMessage(`${sucessos} parcelas criadas com sucesso!`, 'success');
+            lastDataHash = JSON.stringify(contas.map(c => c.id));
+            updateAllFilters();
+            updateDashboard();
+            filterContas();
+            closeFormModal();
+        } else if (sucessos > 0) {
+            showMessage(`${sucessos} de ${parcelas.length} parcelas criadas. Erros: ${erros.join('; ')}`, 'error');
+            lastDataHash = JSON.stringify(contas.map(c => c.id));
+            updateAllFilters();
+            updateDashboard();
+            filterContas();
         } else {
-            showMessage(`${sucessos} de ${parcelas.length} parcelas foram criadas`, 'error');
+            showMessage(`Falha ao criar parcelas. Erros: ${erros.join('; ')}`, 'error');
         }
-        
-        lastDataHash = JSON.stringify(contas.map(c => c.id));
-        updateAllFilters();
-        updateDashboard();
-        filterContas();
-        closeFormModal();
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('Erro geral:', error);
         showMessage(`Erro: ${error.message}`, 'error');
     }
 }
 
 async function salvarConta(editId) {
+    // Validação dos campos obrigatórios
+    const descricao = document.getElementById('descricao')?.value?.trim();
+    const valor = document.getElementById('valor')?.value;
+    const dataVencimento = document.getElementById('data_vencimento')?.value;
+    const formaPagamento = document.getElementById('forma_pagamento')?.value;
+    const banco = document.getElementById('banco')?.value;
+
+    if (!descricao || !valor || !dataVencimento || !formaPagamento || !banco) {
+        showMessage('Por favor, preencha todos os campos obrigatórios.', 'error');
+        return;
+    }
+
     const formData = {
-        documento: document.getElementById('documento').value.trim() || null,
-        descricao: document.getElementById('descricao').value.trim(),
-        valor: parseFloat(document.getElementById('valor').value),
-        data_vencimento: document.getElementById('data_vencimento').value,
-        forma_pagamento: document.getElementById('forma_pagamento').value,
-        banco: document.getElementById('banco').value,
-        data_pagamento: document.getElementById('data_pagamento').value || null,
-        observacoes: document.getElementById('observacoes').value.trim() || null,
+        documento: document.getElementById('documento')?.value?.trim() || null,
+        descricao: descricao,
+        valor: parseFloat(valor),
+        data_vencimento: dataVencimento,
+        forma_pagamento: formaPagamento,
+        banco: banco,
+        data_pagamento: document.getElementById('data_pagamento')?.value || null,
+        observacoes: document.getElementById('observacoes')?.value?.trim() || null,
     };
+
+    // Validar valor numérico
+    if (isNaN(formData.valor) || formData.valor <= 0) {
+        showMessage('Valor inválido. Digite um número maior que zero.', 'error');
+        return;
+    }
 
     // Apenas para edição, manter parcela_numero e parcela_total
     if (editId) {
@@ -721,6 +780,8 @@ async function salvarConta(editId) {
         const url = editId ? `${API_URL}/contas/${editId}` : `${API_URL}/contas`;
         const method = editId ? 'PUT' : 'POST';
 
+        console.log('Enviando dados:', formData); // Debug
+
         const response = await fetch(url, {
             method,
             headers: {
@@ -739,8 +800,14 @@ async function salvarConta(editId) {
         }
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao salvar');
+            let errorMessage = 'Erro ao salvar';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (e) {
+                errorMessage = `Erro ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
 
         const savedData = await response.json();
@@ -760,7 +827,7 @@ async function salvarConta(editId) {
         filterContas();
         closeFormModal();
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('Erro completo:', error);
         showMessage(`Erro: ${error.message}`, 'error');
     }
 }
@@ -1060,7 +1127,7 @@ function renderContas(lista) {
                     <th>Valor</th>
                     <th>Vencimento</th>
                     <th style="text-align: center;">Nº Parcelas</th>
-                    <th>Observação</th>
+                    <th>Banco</th>
                     <th>Data Pagamento</th>
                     <th>Status</th>
                     <th style="text-align: center;">Ações</th>
@@ -1084,7 +1151,7 @@ function renderContas(lista) {
                         <td><strong>R$ ${parseFloat(c.valor).toFixed(2)}</strong></td>
                         <td>${formatDate(c.data_vencimento)}</td>
                         <td style="text-align: center;">${numParcelas}</td>
-                        <td>${c.observacoes || '-'}</td>
+                        <td>${c.banco || '-'}</td>
                         <td>${c.data_pagamento ? formatDate(c.data_pagamento) : '-'}</td>
                         <td>${getStatusBadge(getStatusDinamico(c))}</td>
                         <td class="actions-cell" style="text-align: center;">
