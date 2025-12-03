@@ -539,6 +539,10 @@ tbody tr:hover { background: var(--table-hover); }
     animation: scaleIn 0.2s ease forwards;
 }
 
+.modal-large {
+    max-width: 1200px;
+}
+
 @keyframes scaleIn { to { transform: scale(1); } }
 
 .modal-header {
@@ -557,6 +561,39 @@ tbody tr:hover { background: var(--table-hover); }
     margin: 0;
 }
 
+/* SELETOR DE TIPO DE FORMULÁRIO */
+.form-type-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--input-bg);
+    padding: 0.5rem;
+    border-radius: 10px;
+}
+
+.form-type-btn {
+    flex: 1;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.form-type-btn:hover {
+    background: rgba(204, 112, 0, 0.1);
+    color: var(--text-primary);
+}
+
+.form-type-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* TABS */
 .tabs-container {
     margin-bottom: 1.5rem;
 }
@@ -585,6 +622,7 @@ tbody tr:hover { background: var(--table-hover); }
     margin: 0;
     border-radius: 0;
     pointer-events: auto;
+    position: relative;
 }
 
 .tab-btn:hover {
@@ -596,6 +634,32 @@ tbody tr:hover { background: var(--table-hover); }
     color: var(--primary);
     border-bottom-color: var(--primary);
     background: transparent;
+}
+
+.add-parcela-btn {
+    color: var(--btn-save) !important;
+    font-weight: 700;
+}
+
+.add-parcela-btn:hover {
+    background: rgba(0, 204, 119, 0.1) !important;
+}
+
+.remove-tab {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--danger-color);
+    cursor: pointer;
+    padding: 0 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.remove-tab:hover {
+    background: var(--danger-color);
+    color: white;
 }
 
 .tab-content {
@@ -720,7 +784,7 @@ tbody tr:hover { background: var(--table-hover); }
     .modal-actions { flex-direction: column-reverse; }
     .modal-actions button { width: 100%; }
     .filter-section { grid-template-columns: 1fr; }
-    .tabs-nav { flex-wrap: nowrap; }
+    .tabs-nav { flex-wrap: nowrap; overflow-x: auto; }
     .tab-btn { font-size: 0.8rem; padding: 10px 15px; }
     .month-navigation { gap: 1rem; }
     .floating-add-btn {
@@ -732,5 +796,8 @@ tbody tr:hover { background: var(--table-hover); }
     .floating-add-btn svg {
         width: 24px;
         height: 24px;
+    }
+    .form-type-selector {
+        flex-direction: column;
     }
 }
